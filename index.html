@@ -34,7 +34,7 @@ const ADMIN_PW="111113FFRECARGASFFFRZ";
 const WA="https://wa.me/5353975065";
 const OFFERS=[[110,1],[341,3],[572,5],[1166,10],[2398,20]];
 const SB=supabase.createClient(SB_URL,SB_KEY);
-const S={sess:null,prof:null,mode:"login",email:"",tab:"ofertas",game:false,sel:null,orders:[],bal:0,adm:false,err:"",msg:""};
+const S={sess:null,prof:null,mode:"login",email:"",tab:"ofertas",game:false,sel:null,orders:[],bal:0,adm:false,err:"",msg:"",err2:"",msg2:""};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("es");
@@ -59,7 +59,7 @@ function render(){
   const tabs=[["ofertas","🔥 Ofertas"],["pedidos","📦 Pedidos"],["billetera","💰 Billetera"]];
   if(S.prof&&S.prof.is_admin)tabs.push(["admin","⚙️ Admin"]);
   n.innerHTML=tabs.map(([k,l])=>`<button data-t="${k}" class="${S.tab===k?"on":""}">${l}</button>`).join("");
-  n.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.game=false;S.sel=null;S.err="";render()});
+  n.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.game=false;S.sel=null;S.err="";S.err2="";render()});
   const v={ofertas,pedidos,billetera,admin}[S.tab];
   a.innerHTML=`<div class="top"><h1>FIRE Zone Recargas</h1><button class="alt" id="out" style="padding:8px 12px">Salir</button></div>`+v();
   bind();
@@ -113,6 +113,7 @@ function admin(){
   const w=S.orders.filter(o=>o.status==="espera");
   return`<h2>Billetera admin</h2><div class="card"><div class="big">∞ FRZ</div></div>
 <h2>Enviar</h2><div class="card"><input id="aem" type="email" placeholder="Correo Google del cliente"><input id="aam" type="number" min="1" placeholder="Cantidad FRZ"><div class="err">${esc(S.err)}</div><div class="ok2">${esc(S.msg)}</div><button id="send" style="width:100%">Enviar</button></div>
+<h2>Quitar FRZ</h2><div class="card"><input id="rem" type="email" placeholder="Correo del cliente"><input id="ram" type="number" min="1" placeholder="Cantidad FRZ a quitar"><div class="err">${esc(S.err2)}</div><div class="ok2">${esc(S.msg2)}</div><button class="no" id="rmv" style="width:100%">Quitar</button></div>
 <h2>Pedidos (${w.length} en espera)</h2>`+(S.orders.length?S.orders.map(o=>`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${o.frz} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)}<br>${esc(o.email)} · ${fmt(o.created_at)}</div>${o.status==="espera"?`<input data-m="${o.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-a="${o.id}">ACEPTAR</button><button class="no" data-r="${o.id}">RECHAZAR</button></div>`:""}</div>`).join(""):`<p class="mu">Sin pedidos.</p>`);
 }
 function bind(){
@@ -133,6 +134,13 @@ function bind(){
     if(!em||!(am>0)){S.err="Completa correo y cantidad.";return render()}
     const {error}=await SB.rpc("send_frz",{p_email:em,p_amount:am});
     if(error)S.err=clean(error.message);else{S.err="";S.msg=`Enviaste ${am} FRZ a ${em}.`}
+    render();
+  });
+  g("#rmv",async()=>{
+    const em=$("#rem").value.trim(),am=Math.floor(+$("#ram").value);S.msg2="";
+    if(!em||!(am>0)){S.err2="Completa correo y cantidad.";return render()}
+    const {error}=await SB.rpc("remove_frz",{p_email:em,p_amount:am});
+    if(error)S.err2=clean(error.message);else{S.err2="";S.msg2=`Quitaste ${am} FRZ a ${em}.`}
     render();
   });
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=async()=>{await SB.rpc("resolve_order",{p_id:+b.dataset.a,p_accept:true,p_msg:""});load()});
