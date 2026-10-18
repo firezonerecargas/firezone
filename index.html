@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FIRE Zone Recargas</title>
+<style>
+:root{--bg:#0e1116;--card:#181d26;--tx:#f2f4f8;--mu:#8b94a5;--ac:#ff6a00;--ok:#2ecc71;--no:#ff4d4f;--wa:#25d366;--bd:#2a3140;color-scheme:dark}
+@media(prefers-color-scheme:light){:root{--bg:#f4f5f8;--card:#fff;--tx:#161a22;--mu:#667085;--bd:#dfe3ea;color-scheme:light}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,sans-serif;min-height:100vh;padding-top:env(safe-area-inset-top,0px)}
+main{max-width:560px;margin:0 auto;padding:16px 16px 90px}
+h1{font-size:20px;margin:0}h2{font-size:17px;margin:18px 0 10px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+button,.abtn{font:inherit;border:0;border-radius:10px;padding:12px 16px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer}
+button.alt{background:transparent;border:1px solid var(--bd);color:var(--tx)}
+button.ok{background:var(--ok)}button.no{background:var(--no)}
+.abtn{display:block;text-align:center;text-decoration:none;margin-top:10px;background:var(--wa)}
+button:disabled{opacity:.5}
+input{width:100%;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin:6px 0}
+.big{font-size:34px;font-weight:800}.mu{color:var(--mu);font-size:14px}
+.tag{padding:3px 10px;border-radius:99px;font-size:13px;font-weight:700}
+.espera{background:#f5a62333;color:#f5a623}.aceptado{background:#2ecc7133;color:var(--ok)}.rechazado{background:#ff4d4f33;color:var(--no)}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;border-radius:0;background:transparent;color:var(--mu);padding:14px 4px}
+nav button.on{color:var(--ac)}
+.ff{width:100%;padding:22px;font-size:20px;background:linear-gradient(135deg,#ff6a00,#ff2d55)}
+.err{color:var(--no);font-size:14px;min-height:18px}.ok2{color:var(--ok);font-size:14px}.center{text-align:center;padding-top:12vh}
+</style></head><body><main id="app"><div class="center mu">Cargando…</div></main><nav id="nav" hidden></nav>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SB_URL="https://uvkqfghbooihwfhbrfhb.supabase.co";
+const SB_KEY="sb_publishable_1MCV8VBGzRy66v8RBmFqkQ_zKNCzs85";
+const ADMIN_PW="111113FFRECARGASFFFRZ";
+const WA="https://wa.me/5353975065";
+const OFFERS=[[110,1],[341,3],[572,5],[1166,10],[2398,20]];
+const SB=supabase.createClient(SB_URL,SB_KEY);
+const S={sess:null,prof:null,mode:"login",email:"",tab:"ofertas",game:false,sel:null,orders:[],bal:0,adm:false,err:"",msg:""};
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=t=>new Date(t).toLocaleString("es");
+const clean=m=>(m||"").replace(/^.*?exception:?\s*/i,"");
+
+async function init(){
+  const {data}=await SB.auth.getSession();S.sess=data.session;
+  SB.auth.onAuthStateChange((_e,s)=>{const had=!!S.sess;S.sess=s;if(!!s!==had){S.tab="ofertas";S.game=false;S.adm=false;load()}});
+  await load();setInterval(()=>{if(S.sess&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))load()},10000);
+}
+async function load(){
+  if(S.sess){
+    const [o,b,p]=await Promise.all([SB.from("orders").select("*").order("created_at",{ascending:false}),SB.rpc("my_balance"),SB.from("profiles").select("*").eq("id",S.sess.user.id).single()]);
+    S.orders=o.data||[];S.bal=b.data||0;S.prof=p.data;
+  }
+  render();
+}
+function render(){
+  const a=$("#app"),n=$("#nav");
+  if(!S.sess){n.hidden=true;return auth(a)}
+  n.hidden=false;
+  const tabs=[["ofertas","🔥 Ofertas"],["pedidos","📦 Pedidos"],["billetera","💰 Billetera"]];
+  if(S.prof&&S.prof.is_admin)tabs.push(["admin","⚙️ Admin"]);
+  n.innerHTML=tabs.map(([k,l])=>`<button data-t="${k}" class="${S.tab===k?"on":""}">${l}</button>`).join("");
+  n.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.game=false;S.sel=null;S.err="";render()});
+  const v={ofertas,pedidos,billetera,admin}[S.tab];
+  a.innerHTML=`<div class="top"><h1>FIRE Zone Recargas</h1><button class="alt" id="out" style="padding:8px 12px">Salir</button></div>`+v();
+  bind();
+}
+function auth(a){
+  let h=`<div class="center"><h1>🔥 FIRE Zone Recargas</h1><p class="mu">Recarga diamantes de Free Fire con créditos FRZ</p><div class="card" style="text-align:left">`;
+  if(S.mode==="otp")h+=`<p>Te enviamos un código a <b>${esc(S.email)}</b>. Escríbelo aquí:</p><input id="code" inputmode="numeric" placeholder="Código de confirmación"><div class="err">${esc(S.err)}</div><button id="verify" style="width:100%">Confirmar</button><button class="alt" id="tolog" style="width:100%;margin-top:8px">Volver</button>`;
+  else h+=`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)"><div class="err">${esc(S.err)}</div><div class="ok2">${esc(S.msg)}</div><button id="go" style="width:100%">${S.mode==="login"?"Iniciar sesión":"Crear cuenta"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${S.mode==="login"?"Crear cuenta nueva":"Ya tengo cuenta"}</button>`;
+  a.innerHTML=h+`</div></div>`;
+  const g=(s,f)=>{const e=$(s);if(e)e.onclick=f};
+  g("#sw",()=>{S.mode=S.mode==="login"?"signup":"login";S.err="";S.msg="";render()});
+  g("#tolog",()=>{S.mode="login";S.err="";render()});
+  g("#go",async()=>{
+    const em=$("#em").value.trim().toLowerCase(),pw=$("#pw").value;S.email=em;S.msg="";
+    if(!/^\S+@\S+\.\S+$/.test(em)||pw.length<6){S.err="Escribe un correo válido y una contraseña de 6 o más caracteres.";return render()}
+    if(S.mode==="signup"){
+      const {data,error}=await SB.auth.signUp({email:em,password:pw});
+      if(error)S.err=error.message;
+      else if(data.session){S.err="";S.sess=data.session;await load();return}
+      else{
+        const r=await SB.auth.signInWithPassword({email:em,password:pw});
+        if(r.data&&r.data.session){S.err="";S.sess=r.data.session;await load();return}
+        S.err="";S.mode="otp";
+      }
+    }else{
+      const {error}=await SB.auth.signInWithPassword({email:em,password:pw});
+      S.err=error?"Correo o contraseña incorrectos.":"";
+    }
+    render();
+  });
+  g("#verify",async()=>{
+    const {error}=await SB.auth.verifyOtp({email:S.email,token:$("#code").value.trim(),type:"signup"});
+    if(error){S.err="Código incorrecto o vencido.";render()}else S.err="";
+  });
+}
+function ofertas(){
+  if(!S.game)return`<h2>Ofertas</h2><button class="ff" id="ffb">🔥 Free Fire</button>`;
+  if(S.sel==null)return`<h2>Free Fire</h2>${OFFERS.map(([d,f],i)=>`<div class="card row"><div><b>${d} Diamantes</b><div class="mu">${f} FRZ</div></div><button data-o="${i}">Comprar</button></div>`).join("")}<button class="alt" id="back">← Volver</button>`;
+  const [d,f]=OFFERS[S.sel];
+  return`<h2>${d} Diamantes · ${f} FRZ</h2><div class="card"><label>Coloca tu ID</label><input id="ffid" inputmode="numeric" placeholder="ID de Free Fire"><div class="err">${esc(S.err)}</div><button id="pay" style="width:100%">Pagar</button></div><button class="alt" id="back2">← Volver</button>`;
+}
+function pedidos(){
+  const m=S.orders.filter(o=>o.user_id===S.sess.user.id);
+  return`<h2>Pedidos</h2>`+(m.length?m.map(o=>`<div class="card"><div class="row"><b>${o.diamonds} Diamantes</b><span class="tag ${o.status}">${o.status==="espera"?"En espera":o.status==="aceptado"?"Recarga realizada":"RECHAZADO"}</span></div><div class="mu">ID: ${esc(o.ff_id)} · Pagado: ${o.frz} FRZ<br>${fmt(o.created_at)}</div>${o.status==="rechazado"?`<p><b>Mensaje:</b> ${esc(o.msg||"Sin mensaje")}<br><span class="mu">Tus ${o.frz} FRZ fueron devueltos.</span></p>`:""}</div>`).join(""):`<p class="mu">Aún no tienes pedidos.</p>`);
+}
+function billetera(){
+  return`<h2>Billetera</h2><div class="card"><div class="mu">Saldo</div><div class="big">${S.bal} FRZ</div><a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">RECARGAR</a><div class="mu" style="margin-top:8px;text-align:center">WhatsApp: +53 5397 5065</div></div>`;
+}
+function admin(){
+  if(!S.adm)return`<h2>Administración</h2><div class="card"><label>Contraseña de administrador</label><input id="apw" type="password" placeholder="Contraseña"><div class="err">${esc(S.err)}</div><button id="unlock" style="width:100%">Entrar</button></div>`;
+  const w=S.orders.filter(o=>o.status==="espera");
+  return`<h2>Billetera admin</h2><div class="card"><div class="big">∞ FRZ</div></div>
+<h2>Enviar</h2><div class="card"><input id="aem" type="email" placeholder="Correo Google del cliente"><input id="aam" type="number" min="1" placeholder="Cantidad FRZ"><div class="err">${esc(S.err)}</div><div class="ok2">${esc(S.msg)}</div><button id="send" style="width:100%">Enviar</button></div>
+<h2>Pedidos (${w.length} en espera)</h2>`+(S.orders.length?S.orders.map(o=>`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${o.frz} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)}<br>${esc(o.email)} · ${fmt(o.created_at)}</div>${o.status==="espera"?`<input data-m="${o.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-a="${o.id}">ACEPTAR</button><button class="no" data-r="${o.id}">RECHAZAR</button></div>`:""}</div>`).join(""):`<p class="mu">Sin pedidos.</p>`);
+}
+function bind(){
+  const g=(s,f)=>{const e=$(s);if(e)e.onclick=f};
+  g("#out",()=>SB.auth.signOut());
+  g("#ffb",()=>{S.game=true;render()});g("#back",()=>{S.game=false;render()});g("#back2",()=>{S.sel=null;S.err="";render()});
+  document.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{S.sel=+b.dataset.o;S.err="";render()});
+  g("#pay",async()=>{
+    const ff=$("#ffid").value.trim(),[d]=OFFERS[S.sel];
+    if(!/^\d{5,14}$/.test(ff)){S.err="Escribe un ID válido.";return render()}
+    const {error}=await SB.rpc("place_order",{p_ff:ff,p_diamonds:d});
+    if(error){S.err=clean(error.message);return render()}
+    S.tab="pedidos";S.game=false;S.sel=null;S.err="";await load();
+  });
+  g("#unlock",()=>{if($("#apw").value===ADMIN_PW){S.adm=true;S.err=""}else S.err="Contraseña incorrecta.";render()});
+  g("#send",async()=>{
+    const em=$("#aem").value.trim(),am=Math.floor(+$("#aam").value);S.msg="";
+    if(!em||!(am>0)){S.err="Completa correo y cantidad.";return render()}
+    const {error}=await SB.rpc("send_frz",{p_email:em,p_amount:am});
+    if(error)S.err=clean(error.message);else{S.err="";S.msg=`Enviaste ${am} FRZ a ${em}.`}
+    render();
+  });
+  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=async()=>{await SB.rpc("resolve_order",{p_id:+b.dataset.a,p_accept:true,p_msg:""});load()});
+  document.querySelectorAll("[data-r]").forEach(b=>b.onclick=async()=>{
+    const m=document.querySelector(`[data-m="${b.dataset.r}"]`).value.trim();
+    await SB.rpc("resolve_order",{p_id:+b.dataset.r,p_accept:false,p_msg:m});load();
+  });
+}
+init();
+</script></body></html>
