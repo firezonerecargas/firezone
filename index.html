@@ -10,10 +10,11 @@ main{max-width:560px;margin:0 auto;padding:16px 16px 90px}
 h1{font-size:20px;margin:0}h2{font-size:17px;margin:18px 0 10px}
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:10px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0}
 button,.abtn{font:inherit;border:0;border-radius:10px;padding:12px 16px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer}
 button.alt{background:transparent;border:1px solid var(--bd);color:var(--tx)}
 button.ok{background:var(--ok)}button.no{background:var(--no)}
+button:disabled{opacity:.45;cursor:not-allowed}
 .abtn{display:block;text-align:center;text-decoration:none;margin-top:10px;background:var(--wa)}
 input{width:100%;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin:6px 0}
 .big{font-size:34px;font-weight:800}.mu{color:var(--mu);font-size:14px}
@@ -29,6 +30,18 @@ nav button.on{color:var(--ac)}
 .win .t{font-size:26px;font-weight:900;color:var(--ok);line-height:1.2;margin-bottom:10px}
 .lose .t{font-size:30px;font-weight:900;color:var(--no);margin-bottom:10px}
 .win p,.lose p{margin:4px 0;font-size:17px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.chip{background:var(--card);border:2px solid var(--bd);color:var(--tx);padding:14px 4px}
+.chip.on,.meth.on{border-color:var(--ac);background:#ff6a0022}
+.meth{flex:1;background:var(--card);border:2px solid var(--bd);color:var(--tx);padding:16px 6px}
+.meth:disabled{opacity:.5}
+.hero{background:linear-gradient(135deg,#1d4ed8,#0b1b5a);color:#fff;border:0}
+.hero .mu{color:#c7d2fe}
+.bonus{background:#ff6a0022;border-color:var(--ac);color:var(--tx)}
+.amt{font-size:40px;font-weight:900;color:var(--ac)}
+.cp{padding:10px 14px;background:transparent;border:1px solid var(--bd);color:var(--tx)}
+.pick{width:100%;border:2px dashed var(--ac);background:transparent;color:var(--ac);padding:22px}
+hr{border:0;border-top:1px solid var(--bd)}
 </style></head><body><main id="app"><div class="center mu">Cargando…</div></main><nav id="nav" hidden></nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
@@ -36,26 +49,52 @@ const SB_URL="https://uvkqfghbooihwfhbrfhb.supabase.co";
 const SB_KEY="sb_publishable_1MCV8VBGzRy66v8RBmFqkQ_zKNCzs85";
 const ADMIN_PW="111113FFRECARGASFFFRZ";
 const WA="https://wa.me/5353975065";
+const DEST="53975065";
 const OFFERS=[[110,1],[341,3],[572,5],[1166,10],[2398,20]];
+const QUICK=[1,5,10,25,50];
 const SB=supabase.createClient(SB_URL,SB_KEY);
-const S={sess:null,prof:null,mode:"login",email:"",name:"",tab:"ofertas",game:false,sel:null,orders:[],bal:0,notes:[],clients:[],adm:false,asub:"clientes",selc:null,f:{}};
+(function(){const q=new URLSearchParams(location.search).get("ref");if(q){try{localStorage.setItem("frz_ref",q.toLowerCase().slice(0,16))}catch(e){}}})();
+const getRef=()=>{try{return localStorage.getItem("frz_ref")||""}catch(e){return ""}};
+const S={sess:null,prof:null,mode:getRef()?"signup":"login",email:"",name:"",tab:"ofertas",game:false,sel:null,orders:[],deps:[],proofs:{},bal:0,notes:[],clients:[],adm:false,asub:"clientes",selc:null,dep:null,inv:false,f:{}};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("es");
 const clean=m=>(m||"").replace(/^.*?exception:?\s*/i,"");
+const N=x=>String(Math.round((+x||0)*100)/100);
+const cost=f=>Math.ceil(Math.round(f*250*100)/100);
 const fe=k=>{const x=S.f[k]||{};return`<div class="err">${esc(x.e)}</div><div class="ok2">${esc(x.m)}</div>`};
 const setf=(k,e,m)=>{S.f[k]={e:e||"",m:m||""}};
 const cm=id=>S.clients.find(c=>c.id===id)||{};
+const stCls=s=>s==="pendiente"?"espera":s;
+const stTxt=s=>s==="pendiente"?"Pendiente":s==="aceptado"?"Aceptado":"Rechazado";
+
+async function copyTxt(t,btn){
+  try{await navigator.clipboard.writeText(t)}catch(e){const i=document.createElement("input");i.value=t;document.body.appendChild(i);i.select();document.execCommand("copy");i.remove()}
+  const o=btn.textContent;btn.textContent="✓ Copiado";setTimeout(()=>{btn.textContent=o},1400);
+}
+function compress(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,900/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",0.6))};im.onerror=rej;im.src=r.result};r.onerror=rej;r.readAsDataURL(file)})}
+function calc(f){
+  f=Math.round((+f||0)*100)/100;
+  const elig=!S.deps.some(x=>x.status!=="rechazado");
+  const bonus=elig?Math.round(f*3)/100:0;
+  return{f,elig,bonus,get:Math.round((f+bonus)*100)/100};
+}
 
 async function init(){
   const {data}=await SB.auth.getSession();S.sess=data.session;
-  SB.auth.onAuthStateChange((_e,s)=>{const had=!!S.sess;S.sess=s;if(!!s!==had){S.tab="ofertas";S.game=false;S.adm=false;S.selc=null;load()}});
-  await load();setInterval(()=>{if(S.sess&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))load()},10000);
+  SB.auth.onAuthStateChange((_e,s)=>{const had=!!S.sess;S.sess=s;if(!!s!==had){S.tab="ofertas";S.game=false;S.adm=false;S.selc=null;S.dep=null;load()}});
+  await load();
+  setInterval(()=>{if(S.sess&&!S.dep&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))load()},10000);
 }
 async function load(){
   if(S.sess){
-    const [o,b,p,n]=await Promise.all([SB.from("orders").select("*").order("created_at",{ascending:false}),SB.rpc("my_balance"),SB.from("profiles").select("*").eq("id",S.sess.user.id).single(),SB.from("notifications").select("*").order("created_at",{ascending:false})]);
-    S.orders=o.data||[];S.bal=b.data||0;S.prof=p.data;S.notes=n.data||[];
+    const [o,b,p,n,d]=await Promise.all([
+      SB.from("orders").select("*").order("created_at",{ascending:false}),
+      SB.rpc("my_balance"),
+      SB.from("profiles").select("*").eq("id",S.sess.user.id).single(),
+      SB.from("notifications").select("*").order("created_at",{ascending:false}),
+      SB.from("deposits").select("id,user_id,email,frz,bonus,phone,status,msg,created_at").order("created_at",{ascending:false})]);
+    S.orders=o.data||[];S.bal=b.data||0;S.prof=p.data;S.notes=n.data||[];S.deps=d.data||[];
     if(S.prof&&S.prof.is_admin){const c=await SB.rpc("admin_clients");S.clients=c.data||[]}
   }
   render();
@@ -68,16 +107,16 @@ function render(){
   const tabs=[["ofertas","🔥 Ofertas"],["pedidos","📦 Pedidos"],["billetera","💰 Billetera"],["avisos","🔔 Avisos"]];
   if(S.prof&&S.prof.is_admin)tabs.push(["admin","⚙️ Admin"]);
   n.innerHTML=tabs.map(([k,l])=>`<button data-t="${k}" class="${S.tab===k?"on":""}">${l}</button>`).join("");
-  n.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.game=false;S.sel=null;S.selc=null;S.f={};render()});
-  const v={ofertas,pedidos,billetera,avisos,admin}[S.tab];
-  a.innerHTML=`<div class="top"><h1>FIRE Zone Recargas</h1><button class="alt" id="out" style="padding:8px 12px">Salir</button></div>`+v();
+  n.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.game=false;S.sel=null;S.selc=null;S.dep=null;S.f={};render()});
+  const v=(S.dep&&S.tab==="billetera")?depView():{ofertas,pedidos,billetera,avisos,admin}[S.tab]();
+  a.innerHTML=`<div class="top"><h1>FIRE Zone Recargas</h1><button class="alt" id="out" style="padding:8px 12px">Salir</button></div>`+v;
   bind();
 }
 function myNotes(){return S.notes.filter(x=>x.user_id===S.sess.user.id)}
 function noteCards(l){return l.length?l.map(x=>`<div class="card"><div>${esc(x.text)}</div><div class="mu">${fmt(x.created_at)}</div></div>`).join(""):`<p class="mu">No tienes notificaciones.</p>`}
 function bannedView(){return`<div class="center"><h1>⛔ Cuenta suspendida</h1><p class="mu">Ya no puedes usar esta web. Si crees que es un error, escribe por WhatsApp.</p><div style="text-align:left">${noteCards(myNotes())}</div><button class="alt" id="out">Salir</button></div>`}
 function auth(a){
-  let h=`<div class="center"><h1>🔥 FIRE Zone Recargas</h1><p class="mu">Recarga diamantes de Free Fire con créditos FRZ</p><div class="card" style="text-align:left">`;
+  let h=`<div class="center"><h1>🔥 FIRE Zone Recargas</h1><p class="mu">Recarga diamantes de Free Fire con créditos FRZ</p>${getRef()&&S.mode==="signup"?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
   h+=(S.mode==="signup"?`<input id="nm" placeholder="Tu nombre" value="${esc(S.name)}">`:"")+`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)">${fe("auth")}<button id="go" style="width:100%">${S.mode==="login"?"Iniciar sesión":"Crear cuenta"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${S.mode==="login"?"Crear cuenta nueva":"Ya tengo cuenta"}</button>`;
   a.innerHTML=h+`</div></div>`;
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
@@ -87,7 +126,7 @@ function auth(a){
     if(S.mode==="signup"&&nm.length<2){setf("auth","Escribe tu nombre.");return render()}
     if(!/^\S+@\S+\.\S+$/.test(em)||pw.length<6){setf("auth","Escribe un correo válido y una contraseña de 6 o más caracteres.");return render()}
     if(S.mode==="signup"){
-      const {data,error}=await SB.auth.signUp({email:em,password:pw,options:{data:{name:nm}}});
+      const {data,error}=await SB.auth.signUp({email:em,password:pw,options:{data:{name:nm,ref:getRef()}}});
       if(error)setf("auth",error.message);
       else if(data.session){S.sess=data.session;setf("auth");await load();return}
       else{
@@ -110,34 +149,56 @@ function ofertas(){
 }
 function bigOrder(o){
   const info=`<p><b>Oferta:</b> ${o.diamonds} Diamantes</p><p><b>ID:</b> ${esc(o.ff_id)}</p>`;
-  if(o.status==="aceptado")return`<div class="card win"><div class="t">¡SU COMPRA SE HA REALIZADO CON ÉXITO!</div>${info}<p><b>Crédito descontado:</b> ${o.frz} FRZ</p><div class="mu">${fmt(o.created_at)}</div></div>`;
-  if(o.status==="rechazado")return`<div class="card lose"><div class="t">RECHAZADO</div>${info}<p><b>Mensaje:</b> ${esc(o.msg||"Sin mensaje")}</p><p>Te devolvimos ${o.frz} FRZ.</p><div class="mu">${fmt(o.created_at)}</div></div>`;
-  return`<div class="card"><div class="row"><b>${o.diamonds} Diamantes</b><span class="tag espera">En espera</span></div><div class="mu">ID: ${esc(o.ff_id)} · ${o.frz} FRZ<br>${fmt(o.created_at)}</div></div>`;
+  if(o.status==="aceptado")return`<div class="card win"><div class="t">¡SU COMPRA SE HA REALIZADO CON ÉXITO!</div>${info}<p><b>Crédito descontado:</b> ${N(o.frz)} FRZ</p><div class="mu">${fmt(o.created_at)}</div></div>`;
+  if(o.status==="rechazado")return`<div class="card lose"><div class="t">RECHAZADO</div>${info}<p><b>Mensaje:</b> ${esc(o.msg||"Sin mensaje")}</p><p>Te devolvimos ${N(o.frz)} FRZ.</p><div class="mu">${fmt(o.created_at)}</div></div>`;
+  return`<div class="card"><div class="row"><b>${o.diamonds} Diamantes</b><span class="tag espera">En espera</span></div><div class="mu">ID: ${esc(o.ff_id)} · ${N(o.frz)} FRZ<br>${fmt(o.created_at)}</div></div>`;
 }
 function pedidos(){
   const m=S.orders.filter(o=>o.user_id===S.sess.user.id);
   return`<h2>Pedidos</h2>`+(m.length?m.map(bigOrder).join(""):`<p class="mu">Aún no tienes pedidos.</p>`);
 }
 function billetera(){
-  const p=S.prof||{};
-  return`<h2>Billetera</h2><div class="card"><div class="mu">Cuenta</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}</div><div class="mu" style="margin-top:10px">Saldo</div><div class="big">${S.bal} FRZ</div><a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">RECARGAR</a><div class="mu" style="margin-top:8px;text-align:center">WhatsApp: +53 5397 5065</div></div>`;
+  const p=S.prof||{},mine=S.deps.filter(x=>x.user_id===S.sess.user.id);
+  const link=location.origin+location.pathname+"?ref="+(p.ref_code||"");
+  let h=`<h2>Billetera</h2><div class="card"><div class="mu">Cuenta</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}</div><div class="mu" style="margin-top:10px">Saldo</div><div class="big">${N(S.bal)} FRZ</div>${fe("wal")}<button id="addc" style="width:100%;margin-top:10px">➕ Añadir créditos</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana</button></div>`;
+  if(S.inv)h+=`<div class="card"><b>Invita y gana 5%</b><p class="mu">Comparte tu enlace. Cuando alguien que entre con él recargue créditos, tú ganas el 5% de esa recarga.</p><input readonly value="${esc(link)}" id="rlink"><div class="row"><button class="cp" id="rcopy" data-c="${esc(link)}">Copiar enlace</button><a class="abtn" style="margin:0" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text=${encodeURIComponent("Recarga Free Fire en FIRE Zone: "+link)}">WhatsApp</a></div></div>`;
+  h+=`<h2>Mis recargas</h2>`+(mine.length?mine.map(x=>`<div class="card"><div class="row"><b>${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}</b><span class="tag ${stCls(x.status)}">${stTxt(x.status)}</span></div><div class="mu">${cost(x.frz)} saldo · ${fmt(x.created_at)}</div>${x.status==="rechazado"?`<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p>`:""}</div>`).join(""):`<p class="mu">Aún no tienes recargas.</p>`);
+  return h+`<a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">¿Necesitas ayuda? WhatsApp</a>`;
+}
+function sumHTML(){
+  const c=calc(S.dep.frz);
+  return`<div class="row"><span class="mu">Depósito</span><b>${N(c.f)} FRZ</b></div><div class="row"><span class="mu">Cuesta</span><b>${cost(c.f)} saldo</b></div>${c.elig?`<div class="row"><span class="mu">Bono 3%</span><b style="color:var(--ok)">+${N(c.bonus)} FRZ</b></div>`:""}<hr><div class="row"><span class="mu">Recibes</span><b>${N(c.get)} FRZ</b></div><div class="row"><span class="mu">Pagas</span><b>${cost(c.f)} saldo</b></div>`;
+}
+function depView(){return S.dep.step===1?dep1():dep2()}
+function dep1(){
+  const d=S.dep,c=calc(d.frz);
+  return`<button class="alt" id="dback">← Volver</button><h2>Añadir créditos</h2><div class="card hero"><div class="mu">Saldo actual</div><div class="big">${N(S.bal)} FRZ</div></div>${c.elig?`<div class="card bonus">✨ Primer depósito: se te suma un 3% extra.</div>`:""}<h2>1. Elige el monto</h2><div class="chips">${QUICK.map(q=>`<button class="chip ${!d.cus&&d.frz===q?"on":""}" data-q="${q}">${q} FRZ</button>`).join("")}</div><div class="mu">O escribe otro monto (mínimo 1 FRZ, puede llevar decimales)</div><input id="dcus" inputmode="decimal" placeholder="Ej.: 1.80" value="${esc(d.cus)}"><h2>2. Método de pago</h2><div class="row" style="gap:8px"><button class="meth on">📱 Saldo móvil<div class="mu">1 FRZ = 250 saldo</div></button><button class="meth" disabled>💲 USDT<div class="mu">Todavía no disponible</div></button></div><div class="card" id="sum" style="margin-top:10px">${sumHTML()}</div><button id="dnext" style="width:100%" ${c.f<1?"disabled":""}>Continuar ›</button>`;
+}
+function dep2(){
+  const d=S.dep,c=calc(d.frz),pay=cost(c.f);
+  return`<h2>Recarga de saldo</h2><div class="card row"><div>Depósito de <b>${N(c.f)} FRZ</b></div><button class="cp" id="dedit">✏️ Editar</button></div><div class="card"><div class="row"><b>📱 Saldo móvil</b><span class="tag espera">Pendiente</span></div><div class="mu">Importe exacto</div><div class="row"><div><span class="amt">${pay}</span> <b style="color:var(--ac)">saldo</b></div><button class="cp" data-c="${pay}">Copiar</button></div><div class="mu">Transfiere exactamente este importe.</div><hr><div class="mu">Número de destino</div><div class="row"><div class="big" style="font-size:28px">${DEST}</div><button class="cp" data-c="${DEST}">Copiar</button></div></div><div class="card"><b>Identifica tu transferencia</b><div class="mu">Número desde el que transferiste</div><div class="row" style="gap:8px"><b>+53</b><input id="dph" inputmode="numeric" maxlength="8" placeholder="5XXXXXXX" value="${esc(d.phone)}"></div><div class="mu">Usaremos este número para localizar tu pago.</div></div><div class="card bonus"><b>🕒 Revisión manual</b><div class="mu">Te avisaremos cuando se confirme el pago.</div></div><div class="card"><b>Comprobante de pago</b><div class="mu">Adjunta una imagen de la transferencia. Agiliza la revisión.</div><input type="file" id="dfile" accept="image/*" hidden>${d.proof?`<img src="${d.proof}" style="max-width:100%;border-radius:10px;margin:8px 0">`:""}<button class="pick" id="dpick" style="margin-top:8px">📷 ${d.proof?"Cambiar imagen":"Adjuntar imagen"}</button></div>${fe("dep")}<button id="dsend" style="width:100%" ${d.busy?"disabled":""}>Ya transferí · Enviar a revisión ›</button>`;
 }
 function avisos(){return`<h2>Notificaciones</h2>`+noteCards(myNotes())}
-function mini(o){return`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${o.frz} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)} · ${fmt(o.created_at)}</div></div>`}
+function mini(o){return`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${N(o.frz)} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)} · ${fmt(o.created_at)}</div></div>`}
+function depCard(x){
+  const c=cm(x.user_id),pr=S.proofs[x.id];
+  return`<div class="card"><div class="row"><b>${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}</b><span class="tag ${stCls(x.status)}">${stTxt(x.status)}</span></div><div class="mu">${esc(c.name||"")} · ${esc(x.email)}<br>Tel: +53 ${esc(x.phone)} · Costo: ${cost(x.frz)} saldo<br>${fmt(x.created_at)}</div>${pr?`<img src="${pr}" style="max-width:100%;border-radius:10px;margin-top:8px">`:`<button class="alt" data-pf="${x.id}" style="margin-top:8px">Ver captura</button>`}${x.status==="pendiente"?`<input data-dm="${x.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-da="${x.id}">ACEPTAR</button><button class="no" data-dr="${x.id}">RECHAZAR</button></div>`:""}</div>`;
+}
 function admin(){
   if(!S.adm)return`<h2>Administración</h2><div class="card"><label>Contraseña de administrador</label><input id="apw" type="password" placeholder="Contraseña">${fe("gate")}<button id="unlock" style="width:100%">Entrar</button></div>`;
-  const cl=S.clients.filter(c=>!c.admin),w=S.orders.filter(o=>o.status==="espera");
-  let h=`<div class="card row"><div><div class="mu">Clientes</div><div class="big">👥 ${cl.length}</div></div><div style="text-align:right"><div class="mu">Pedidos en espera</div><div class="big">${w.length}</div></div></div>`;
-  h+=`<div class="row" style="gap:6px;margin-bottom:10px">${[["clientes","Clientes"],["pedidos","Pedidos"],["frz","FRZ"]].map(([k,l])=>`<button class="${S.asub===k?"":"alt"}" data-s="${k}" style="flex:1;padding:10px">${l}</button>`).join("")}</div>`;
-  if(S.asub==="clientes")h+=S.selc?detail():cl.map(c=>`<div class="card row"><div><b>${esc(c.name||"(sin nombre)")}</b> ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}<br>${c.balance} FRZ · ${c.orders_count} pedidos</div></div><button data-v="${c.id}">Ver</button></div>`).join("")||`<p class="mu">Aún no hay clientes.</p>`;
-  if(S.asub==="pedidos")h+=S.orders.length?S.orders.map(o=>`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${o.frz} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)}<br>${esc(cm(o.user_id).name||"")} · ${esc(o.email)} · ${fmt(o.created_at)}</div>${o.status==="espera"?`<input data-m="${o.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-a="${o.id}">ACEPTAR</button><button class="no" data-r="${o.id}">RECHAZAR</button></div>`:""}</div>`).join(""):`<p class="mu">Sin pedidos.</p>`;
-  if(S.asub==="frz")h+=`<div class="card"><div class="mu">Tu billetera</div><div class="big">∞ FRZ</div></div><h2>Enviar</h2><div class="card"><input id="aem" type="email" placeholder="Correo del cliente"><input id="aam" type="number" min="1" placeholder="Cantidad FRZ">${fe("send")}<button id="send" style="width:100%">Enviar</button></div><h2>Quitar FRZ</h2><div class="card"><input id="rem" type="email" placeholder="Correo del cliente"><input id="ram" type="number" min="1" placeholder="Cantidad FRZ a quitar">${fe("rmv")}<button class="no" id="rmv" style="width:100%">Quitar</button></div>`;
+  const cl=S.clients.filter(c=>!c.admin),w=S.orders.filter(o=>o.status==="espera"),dp=S.deps.filter(x=>x.status==="pendiente");
+  let h=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big">${cl.length}</div></div><div><div class="mu">Pedidos</div><div class="big">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big">${dp.length}</div></div></div>${fe("adm")}`;
+  h+=`<div class="row" style="gap:6px;margin-bottom:10px">${[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"],["frz","FRZ"]].map(([k,l])=>`<button class="${S.asub===k?"":"alt"}" data-s="${k}" style="flex:1;padding:10px 2px;font-size:13px">${l}</button>`).join("")}</div>`;
+  if(S.asub==="clientes")h+=S.selc?detail():cl.map(c=>`<div class="card row"><div><b>${esc(c.name||"(sin nombre)")}</b> ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}<br>${N(c.balance)} FRZ · ${c.orders_count} pedidos</div></div><button data-v="${c.id}">Ver</button></div>`).join("")||`<p class="mu">Aún no hay clientes.</p>`;
+  if(S.asub==="recargas")h+=S.deps.length?S.deps.slice().sort((a,b)=>(a.status==="pendiente"?0:1)-(b.status==="pendiente"?0:1)).map(depCard).join(""):`<p class="mu">Sin recargas.</p>`;
+  if(S.asub==="pedidos")h+=S.orders.length?S.orders.map(o=>`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${N(o.frz)} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)}<br>${esc(cm(o.user_id).name||"")} · ${esc(o.email)} · ${fmt(o.created_at)}</div>${o.status==="espera"?`<input data-m="${o.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-a="${o.id}">ACEPTAR</button><button class="no" data-r="${o.id}">RECHAZAR</button></div>`:""}</div>`).join(""):`<p class="mu">Sin pedidos.</p>`;
+  if(S.asub==="frz")h+=`<div class="card"><div class="mu">Tu billetera</div><div class="big">∞ FRZ</div></div><h2>Enviar</h2><div class="card"><input id="aem" type="email" placeholder="Correo del cliente"><input id="aam" type="number" step="any" min="0.01" placeholder="Cantidad FRZ">${fe("send")}<button id="send" style="width:100%">Enviar</button></div><h2>Quitar FRZ</h2><div class="card"><input id="rem" type="email" placeholder="Correo del cliente"><input id="ram" type="number" step="any" min="0.01" placeholder="Cantidad FRZ a quitar">${fe("rmv")}<button class="no" id="rmv" style="width:100%">Quitar</button></div>`;
   return h;
 }
 function detail(){
   const c=S.clients.find(x=>x.id===S.selc);if(!c)return"";
   const os=S.orders.filter(o=>o.user_id===c.id);
-  return`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:10px"><b>${esc(c.name||"(sin nombre)")}</b> ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}</div><div class="big">${c.balance} FRZ</div><div class="mu">${c.orders_count} pedidos</div>${fe("ban")}<button class="${c.banned?"ok":"no"}" data-ban="${c.id}" data-b="${c.banned?0:1}" style="width:100%;margin-top:10px">${c.banned?"Quitar baneo":"Banear cliente"}</button></div><h2>Enviar mensaje</h2><div class="card"><input id="nmsg" placeholder="Mensaje para el cliente">${fe("note")}<button id="nsend" data-u="${c.id}" style="width:100%">Enviar mensaje</button></div><h2>Pedidos del cliente</h2>`+(os.length?os.map(mini).join(""):`<p class="mu">Sin pedidos.</p>`);
+  return`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:10px"><b>${esc(c.name||"(sin nombre)")}</b> ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}</div><div class="big">${N(c.balance)} FRZ</div><div class="mu">${c.orders_count} pedidos</div>${fe("ban")}<button class="${c.banned?"ok":"no"}" data-ban="${c.id}" data-b="${c.banned?0:1}" style="width:100%;margin-top:10px">${c.banned?"Quitar baneo":"Banear cliente"}</button></div><h2>Enviar mensaje</h2><div class="card"><input id="nmsg" placeholder="Mensaje para el cliente">${fe("note")}<button id="nsend" data-u="${c.id}" style="width:100%">Enviar mensaje</button></div><h2>Pedidos del cliente</h2>`+(os.length?os.map(mini).join(""):`<p class="mu">Sin pedidos.</p>`);
 }
 function bind(){
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
@@ -151,10 +212,60 @@ function bind(){
     if(error){setf("pay",clean(error.message));return render()}
     S.tab="pedidos";S.game=false;S.sel=null;S.f={};await load();
   });
+  /* billetera y recargas */
+  g("#addc",()=>{S.dep={step:1,frz:1,cus:"",phone:"",proof:"",busy:false};S.f={};render();window.scrollTo(0,0)});
+  g("#inv",()=>{S.inv=!S.inv;render()});
+  document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>copyTxt(b.dataset.c,b));
+  g("#dback",()=>{S.dep=null;S.f={};render()});
+  document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{S.dep.frz=+b.dataset.q;S.dep.cus="";render()});
+  const cus=$("#dcus");
+  if(cus)cus.oninput=()=>{
+    S.dep.cus=cus.value;S.dep.frz=parseFloat(cus.value.replace(",","."))||0;
+    $("#sum").innerHTML=sumHTML();
+    $("#dnext").disabled=calc(S.dep.frz).f<1;
+    document.querySelectorAll("[data-q]").forEach(b=>b.classList.remove("on"));
+  };
+  g("#dnext",()=>{if(calc(S.dep.frz).f<1)return;S.dep.step=2;S.f={};render();window.scrollTo(0,0)});
+  g("#dedit",()=>{S.dep.step=1;render()});
+  const ph=$("#dph");
+  if(ph)ph.oninput=()=>{S.dep.phone=ph.value.replace(/\D/g,"").slice(0,8);ph.value=S.dep.phone};
+  g("#dpick",()=>$("#dfile").click());
+  const fi=$("#dfile");
+  if(fi)fi.onchange=async e=>{
+    const f=e.target.files[0];if(!f)return;
+    try{S.dep.proof=await compress(f);setf("dep")}catch(x){setf("dep","No se pudo leer la imagen. Prueba con otra captura.")}
+    render();
+  };
+  g("#dsend",async()=>{
+    const d=S.dep;
+    if(!/^\d{8}$/.test(d.phone)){setf("dep","Escribe el número desde el que transferiste (8 dígitos).");return render()}
+    if(!d.proof){setf("dep","Adjunta la imagen de la transferencia.");return render()}
+    d.busy=true;render();
+    const {error}=await SB.rpc("create_deposit",{p_frz:calc(d.frz).f,p_phone:d.phone,p_proof:d.proof});
+    if(error){d.busy=false;setf("dep",clean(error.message));return render()}
+    S.dep=null;S.tab="billetera";setf("wal","","✅ Recarga enviada. Está pendiente de revisión.");await load();window.scrollTo(0,0);
+  });
+  /* admin */
   g("#unlock",()=>{if($("#apw").value===ADMIN_PW){S.adm=true;S.f={}}else setf("gate","Contraseña incorrecta.");render()});
   document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{S.asub=b.dataset.s;S.selc=null;S.f={};render()});
   document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.selc=b.dataset.v;S.f={};render()});
   g("#cback",()=>{S.selc=null;S.f={};render()});
+  document.querySelectorAll("[data-pf]").forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.pf,{data,error}=await SB.from("deposits").select("proof").eq("id",id).single();
+    if(error||!data){setf("adm","No se pudo cargar la imagen.")}else{S.proofs[id]=data.proof;setf("adm")}
+    render();
+  });
+  document.querySelectorAll("[data-da]").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.da,p_accept:true,p_msg:""});
+    setf("adm",error?clean(error.message):"");await load();
+  });
+  document.querySelectorAll("[data-dr]").forEach(b=>b.onclick=async()=>{
+    const m=document.querySelector(`[data-dm="${b.dataset.dr}"]`).value.trim();
+    b.disabled=true;
+    const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.dr,p_accept:false,p_msg:m});
+    setf("adm",error?clean(error.message):"");await load();
+  });
   document.querySelectorAll("[data-ban]").forEach(b=>b.onclick=async()=>{
     const ban=b.dataset.b==="1";
     if(ban&&!confirm("¿Banear a este cliente?"))return;
@@ -169,17 +280,17 @@ function bind(){
     render();
   });
   g("#send",async()=>{
-    const em=$("#aem").value.trim(),am=Math.floor(+$("#aam").value);
+    const em=$("#aem").value.trim(),am=parseFloat($("#aam").value);
     if(!em||!(am>0)){setf("send","Completa correo y cantidad.");return render()}
     const {error}=await SB.rpc("send_frz",{p_email:em,p_amount:am});
-    if(error)setf("send",clean(error.message));else setf("send","",`Enviaste ${am} FRZ a ${em}.`);
+    if(error)setf("send",clean(error.message));else setf("send","",`Enviaste ${N(am)} FRZ a ${em}.`);
     await load();
   });
   g("#rmv",async()=>{
-    const em=$("#rem").value.trim(),am=Math.floor(+$("#ram").value);
+    const em=$("#rem").value.trim(),am=parseFloat($("#ram").value);
     if(!em||!(am>0)){setf("rmv","Completa correo y cantidad.");return render()}
     const {error}=await SB.rpc("remove_frz",{p_email:em,p_amount:am});
-    if(error)setf("rmv",clean(error.message));else setf("rmv","",`Quitaste ${am} FRZ a ${em}.`);
+    if(error)setf("rmv",clean(error.message));else setf("rmv","",`Quitaste ${N(am)} FRZ a ${em}.`);
     await load();
   });
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=async()=>{await SB.rpc("resolve_order",{p_id:+b.dataset.a,p_accept:true,p_msg:""});load()});
