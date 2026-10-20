@@ -42,6 +42,7 @@ nav button.on{color:var(--ac)}
 .cp{padding:10px 14px;background:transparent;border:1px solid var(--bd);color:var(--tx)}
 .pick{width:100%;border:2px dashed var(--ac);background:transparent;color:var(--ac);padding:22px}
 hr{border:0;border-top:1px solid var(--bd)}
+.toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;right:12px;max-width:536px;margin:0 auto;background:var(--ac);color:#fff;padding:14px;border-radius:12px;z-index:50;font-weight:600;box-shadow:0 6px 20px #0006}
 </style></head><body><main id="app"><div class="center mu">Cargando…</div></main><nav id="nav" hidden></nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
@@ -55,7 +56,7 @@ const QUICK=[1,5,10,25,50];
 const SB=supabase.createClient(SB_URL,SB_KEY);
 (function(){const q=new URLSearchParams(location.search).get("ref");if(q){try{localStorage.setItem("frz_ref",q.toLowerCase().slice(0,16))}catch(e){}}})();
 const getRef=()=>{try{return localStorage.getItem("frz_ref")||""}catch(e){return ""}};
-const S={sess:null,prof:null,mode:getRef()?"signup":"login",email:"",name:"",tab:"ofertas",game:false,sel:null,orders:[],deps:[],proofs:{},bal:0,notes:[],clients:[],adm:false,asub:"clientes",selc:null,dep:null,inv:false,f:{}};
+const S={sess:null,prof:null,mode:getRef()?"signup":"login",email:"",name:"",tab:"ofertas",game:false,sel:null,orders:[],deps:[],proofs:{},bal:0,notes:[],seen:null,clients:[],adm:false,asub:"clientes",selc:null,dep:null,inv:false,f:{}};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("es");
@@ -79,12 +80,46 @@ function calc(f){
   const bonus=elig?Math.round(f*3)/100:0;
   return{f,elig,bonus,get:Math.round((f+bonus)*100)/100};
 }
+/* notificaciones */
+function showToast(t){const d=document.createElement("div");d.className="toast";d.textContent="🔔 "+t;document.body.appendChild(d);setTimeout(()=>d.remove(),6000)}
+function ping(t){
+  showToast(t);
+  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  try{if("Notification" in window&&Notification.permission==="granted")new Notification("FIRE Zone Recargas",{body:t})}catch(e){}
+}
+function detectNew(list){
+  const mine=list.filter(x=>x.user_id===S.sess.user.id);
+  if(S.seen){
+    const fresh=mine.filter(x=>!S.seen.has(x.id)&&!x.read).sort((a,b)=>a.id-b.id);
+    fresh.forEach((x,i)=>{if(i===fresh.length-1)ping(x.text)});
+  }
+  S.seen=new Set(mine.map(x=>x.id));
+}
+function myNotes(){return S.notes.filter(x=>x.user_id===S.sess.user.id)}
+function unreadN(){return S.sess?myNotes().filter(x=>!x.read).length:0}
+function buildNav(){
+  const n=$("#nav");if(!S.sess)return;
+  const u=unreadN();
+  const tabs=[["ofertas","🔥 Ofertas"],["pedidos","📦 Pedidos"],["billetera","💰 Billetera"],["avisos","🔔 Avisos"+(u?` (${u})`:"")]];
+  if(S.prof&&S.prof.is_admin)tabs.push(["admin","⚙️ Admin"]);
+  n.innerHTML=tabs.map(([k,l])=>`<button data-t="${k}" class="${S.tab===k?"on":""}">${l}</button>`).join("");
+  n.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.game=false;S.sel=null;S.selc=null;S.dep=null;S.f={};render()});
+}
+async function pollNotes(){
+  if(!S.sess)return;
+  const {data}=await SB.from("notifications").select("*").order("created_at",{ascending:false});
+  if(data){S.notes=data;detectNew(data);buildNav()}
+}
 
 async function init(){
   const {data}=await SB.auth.getSession();S.sess=data.session;
-  SB.auth.onAuthStateChange((_e,s)=>{const had=!!S.sess;S.sess=s;if(!!s!==had){S.tab="ofertas";S.game=false;S.adm=false;S.selc=null;S.dep=null;load()}});
+  SB.auth.onAuthStateChange((_e,s)=>{const had=!!S.sess;S.sess=s;if(!!s!==had){S.tab="ofertas";S.game=false;S.adm=false;S.selc=null;S.dep=null;S.seen=null;load()}});
   await load();
-  setInterval(()=>{if(S.sess&&!S.dep&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))load()},10000);
+  setInterval(async()=>{
+    if(!S.sess)return;
+    await pollNotes();
+    if(!S.dep&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))load();
+  },10000);
 }
 async function load(){
   if(S.sess){
@@ -95,6 +130,7 @@ async function load(){
       SB.from("notifications").select("*").order("created_at",{ascending:false}),
       SB.from("deposits").select("id,user_id,email,frz,bonus,phone,status,msg,created_at").order("created_at",{ascending:false})]);
     S.orders=o.data||[];S.bal=b.data||0;S.prof=p.data;S.notes=n.data||[];S.deps=d.data||[];
+    detectNew(S.notes);
     if(S.prof&&S.prof.is_admin){const c=await SB.rpc("admin_clients");S.clients=c.data||[]}
   }
   render();
@@ -103,17 +139,15 @@ function render(){
   const a=$("#app"),n=$("#nav");
   if(!S.sess){n.hidden=true;return auth(a)}
   if(S.prof&&S.prof.banned&&!S.prof.is_admin){n.hidden=true;a.innerHTML=bannedView();bind();return}
-  n.hidden=false;
-  const tabs=[["ofertas","🔥 Ofertas"],["pedidos","📦 Pedidos"],["billetera","💰 Billetera"],["avisos","🔔 Avisos"]];
-  if(S.prof&&S.prof.is_admin)tabs.push(["admin","⚙️ Admin"]);
-  n.innerHTML=tabs.map(([k,l])=>`<button data-t="${k}" class="${S.tab===k?"on":""}">${l}</button>`).join("");
-  n.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.game=false;S.sel=null;S.selc=null;S.dep=null;S.f={};render()});
+  n.hidden=false;buildNav();
   const v=(S.dep&&S.tab==="billetera")?depView():{ofertas,pedidos,billetera,avisos,admin}[S.tab]();
   a.innerHTML=`<div class="top"><h1>FIRE Zone Recargas</h1><button class="alt" id="out" style="padding:8px 12px">Salir</button></div>`+v;
   bind();
+  if(S.tab==="avisos"&&!S.dep&&unreadN()>0){
+    SB.rpc("mark_notifications_read").then(()=>{S.notes.forEach(x=>{if(x.user_id===S.sess.user.id)x.read=true});buildNav()});
+  }
 }
-function myNotes(){return S.notes.filter(x=>x.user_id===S.sess.user.id)}
-function noteCards(l){return l.length?l.map(x=>`<div class="card"><div>${esc(x.text)}</div><div class="mu">${fmt(x.created_at)}</div></div>`).join(""):`<p class="mu">No tienes notificaciones.</p>`}
+function noteCards(l){return l.length?l.map(x=>`<div class="card"><div>${!x.read?'<span class="tag espera">NUEVO</span> ':""}${esc(x.text)}</div><div class="mu">${fmt(x.created_at)}</div></div>`).join(""):`<p class="mu">No tienes notificaciones.</p>`}
 function bannedView(){return`<div class="center"><h1>⛔ Cuenta suspendida</h1><p class="mu">Ya no puedes usar esta web. Si crees que es un error, escribe por WhatsApp.</p><div style="text-align:left">${noteCards(myNotes())}</div><button class="alt" id="out">Salir</button></div>`}
 function auth(a){
   let h=`<div class="center"><h1>🔥 FIRE Zone Recargas</h1><p class="mu">Recarga diamantes de Free Fire con créditos FRZ</p>${getRef()&&S.mode==="signup"?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
@@ -178,7 +212,10 @@ function dep2(){
   const d=S.dep,c=calc(d.frz),pay=cost(c.f);
   return`<h2>Recarga de saldo</h2><div class="card row"><div>Depósito de <b>${N(c.f)} FRZ</b></div><button class="cp" id="dedit">✏️ Editar</button></div><div class="card"><div class="row"><b>📱 Saldo móvil</b><span class="tag espera">Pendiente</span></div><div class="mu">Importe exacto</div><div class="row"><div><span class="amt">${pay}</span> <b style="color:var(--ac)">saldo</b></div><button class="cp" data-c="${pay}">Copiar</button></div><div class="mu">Transfiere exactamente este importe.</div><hr><div class="mu">Número de destino</div><div class="row"><div class="big" style="font-size:28px">${DEST}</div><button class="cp" data-c="${DEST}">Copiar</button></div></div><div class="card"><b>Identifica tu transferencia</b><div class="mu">Número desde el que transferiste</div><div class="row" style="gap:8px"><b>+53</b><input id="dph" inputmode="numeric" maxlength="8" placeholder="5XXXXXXX" value="${esc(d.phone)}"></div><div class="mu">Usaremos este número para localizar tu pago.</div></div><div class="card bonus"><b>🕒 Revisión manual</b><div class="mu">Te avisaremos cuando se confirme el pago.</div></div><div class="card"><b>Comprobante de pago</b><div class="mu">Adjunta una imagen de la transferencia. Agiliza la revisión.</div><input type="file" id="dfile" accept="image/*" hidden>${d.proof?`<img src="${d.proof}" style="max-width:100%;border-radius:10px;margin:8px 0">`:""}<button class="pick" id="dpick" style="margin-top:8px">📷 ${d.proof?"Cambiar imagen":"Adjuntar imagen"}</button></div>${fe("dep")}<button id="dsend" style="width:100%" ${d.busy?"disabled":""}>Ya transferí · Enviar a revisión ›</button>`;
 }
-function avisos(){return`<h2>Notificaciones</h2>`+noteCards(myNotes())}
+function avisos(){
+  const can=("Notification" in window)&&Notification.permission==="default";
+  return`<h2>Notificaciones</h2>${can?`<button class="alt" id="npush" style="width:100%;margin-bottom:10px">🔔 Activar avisos del navegador</button>`:""}<p class="mu">Se revisan cada 10 segundos mientras la web esté abierta.</p>`+noteCards(myNotes());
+}
 function mini(o){return`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${N(o.frz)} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)} · ${fmt(o.created_at)}</div></div>`}
 function depCard(x){
   const c=cm(x.user_id),pr=S.proofs[x.id];
@@ -203,6 +240,7 @@ function detail(){
 function bind(){
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
   g("#out",()=>SB.auth.signOut());
+  g("#npush",()=>{try{Notification.requestPermission().then(()=>render())}catch(e){}});
   g("#ffb",()=>{S.game=true;render()});g("#back",()=>{S.game=false;render()});g("#back2",()=>{S.sel=null;S.f={};render()});
   document.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{S.sel=+b.dataset.o;S.f={};render()});
   g("#pay",async()=>{
@@ -212,7 +250,6 @@ function bind(){
     if(error){setf("pay",clean(error.message));return render()}
     S.tab="pedidos";S.game=false;S.sel=null;S.f={};await load();
   });
-  /* billetera y recargas */
   g("#addc",()=>{S.dep={step:1,frz:1,cus:"",phone:"",proof:"",busy:false};S.f={};render();window.scrollTo(0,0)});
   g("#inv",()=>{S.inv=!S.inv;render()});
   document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>copyTxt(b.dataset.c,b));
@@ -245,7 +282,6 @@ function bind(){
     if(error){d.busy=false;setf("dep",clean(error.message));return render()}
     S.dep=null;S.tab="billetera";setf("wal","","✅ Recarga enviada. Está pendiente de revisión.");await load();window.scrollTo(0,0);
   });
-  /* admin */
   g("#unlock",()=>{if($("#apw").value===ADMIN_PW){S.adm=true;S.f={}}else setf("gate","Contraseña incorrecta.");render()});
   document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{S.asub=b.dataset.s;S.selc=null;S.f={};render()});
   document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.selc=b.dataset.v;S.f={};render()});
