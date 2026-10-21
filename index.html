@@ -33,8 +33,9 @@ nav button.on{color:var(--ac)}
 .chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
 .chip{background:var(--card);border:2px solid var(--bd);color:var(--tx);padding:14px 4px}
 .chip.on,.meth.on{border-color:var(--ac);background:#ff6a0022}
-.meth{flex:1;background:var(--card);border:2px solid var(--bd);color:var(--tx);padding:16px 6px}
-.meth:disabled{opacity:.5}
+.meths{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.meth{background:var(--card);border:2px solid var(--bd);color:var(--tx);padding:12px 4px;font-size:14px}
+.meth .mu{font-size:11px}
 .hero{background:linear-gradient(135deg,#1d4ed8,#0b1b5a);color:#fff;border:0}
 .hero .mu{color:#c7d2fe}
 .bonus{background:#ff6a0022;border-color:var(--ac);color:var(--tx)}
@@ -54,21 +55,29 @@ const SB_KEY="sb_publishable_1MCV8VBGzRy66v8RBmFqkQ_zKNCzs85";
 const ADMIN_PW="111113FFRECARGASFFFRZ";
 const WA="https://wa.me/5353975065";
 const DEST="53975065";
-const RATE=280;
+const CARD_SHOW="9234 0699 9423 3942",CARD_RAW="9234069994233942",CONFIRM="54801767";
+const WALLET="0xCBfB34fDbA5967EAB6AA331D2e86c57FDF4D0A3a";
+const METHODS={
+  saldo:{icon:"📱",name:"Saldo móvil",short:"Saldo",unit:"saldo",rate:290,rt:"1 FRZ = 290 saldo",direct:[260,780,1300,2600,5200]},
+  banco:{icon:"🏦",name:"Transferencia bancaria",short:"Transfer.",unit:"CUP",rate:1160,rt:"1 FRZ = 1160 CUP",direct:[910,2730,4550,9100,18200]},
+  usdt:{icon:"💲",name:"USDT (BEP20)",short:"USDT",unit:"USDT",rate:1,rt:"1 FRZ = 1 USDT",direct:[0.85,2.55,4.25,8.5,17]}
+};
 const OFFERS=[[110,1],[341,3],[572,5],[1166,10],[2398,20]];
-const DIRECT=[[110,250],[341,750],[572,1250],[1166,2500],[2398,5000]];
 const QUICK=[1,5,10,25,50];
 const SB=supabase.createClient(SB_URL,SB_KEY);
 (function(){const q=new URLSearchParams(location.search).get("ref");if(q){try{localStorage.setItem("frz_ref",q.toLowerCase().slice(0,16))}catch(e){}}})();
 const getRef=()=>{try{return localStorage.getItem("frz_ref")||""}catch(e){return ""}};
-const S={sess:null,prof:null,mode:getRef()?"signup":"login",email:"",name:"",tab:"ofertas",game:false,method:null,sel:null,dr:null,orders:[],deps:[],cards:[],newCodes:[],proofs:{},bal:0,notes:[],seen:null,clients:[],adm:false,asub:"clientes",selc:null,dep:null,gv:false,inv:false,f:{}};
+const S={sess:null,prof:null,open:true,mode:getRef()?"signup":"login",email:"",name:"",tab:"ofertas",game:false,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],cards:[],newCodes:[],proofs:{},bal:0,notes:[],seen:null,clients:[],adm:false,asub:"clientes",selc:null,dep:null,gv:false,inv:false,f:{}};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("es");
 const clean=m=>(m||"").replace(/^.*?exception:?\s*/i,"");
 const N=x=>String(Math.round((+x||0)*100)/100);
-const cost=f=>Math.ceil(Math.round(f*RATE*100)/100);
-const sal=x=>x.saldo||cost(x.frz);
+const pr=(m,f)=>m==="usdt"?Math.round(f*100)/100:Math.ceil(Math.round(f*METHODS[m].rate*100)/100);
+const ptxt=(m,p)=>N(p)+" "+METHODS[m].unit;
+const mOf=x=>x.method||"saldo";
+const priceOf=x=>+(x.price??x.saldo??0);
+const px=x=>ptxt(mOf(x),priceOf(x));
 const fe=k=>{const x=S.f[k]||{};return`<div class="err">${esc(x.e)}</div><div class="ok2">${esc(x.m)}</div>`};
 const setf=(k,e,m)=>{S.f[k]={e:e||"",m:m||""}};
 const cm=id=>S.clients.find(c=>c.id===id)||{};
@@ -117,12 +126,16 @@ async function pollNotes(){
   const {data}=await SB.from("notifications").select("*").order("created_at",{ascending:false});
   if(data){S.notes=data;detectNew(data);buildNav()}
 }
-
+async function loadSettings(){
+  try{const {data}=await SB.from("site_settings").select("value").eq("key","open").maybeSingle();S.open=!(data&&data.value==="false")}catch(e){S.open=true}
+}
 async function init(){
   const {data}=await SB.auth.getSession();S.sess=data.session;
   SB.auth.onAuthStateChange((_e,s)=>{const had=!!S.sess;S.sess=s;if(!!s!==had){S.tab="ofertas";S.adm=false;S.seen=null;resetNav();load()}});
-  await load();
+  await loadSettings();await load();
   setInterval(async()=>{
+    const was=S.open;await loadSettings();
+    if(was!==S.open&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))render();
     if(!S.sess)return;
     await pollNotes();
     if(!S.dep&&!S.dr&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))load();
@@ -135,7 +148,7 @@ async function load(){
       SB.rpc("my_balance"),
       SB.from("profiles").select("*").eq("id",S.sess.user.id).single(),
       SB.from("notifications").select("*").order("created_at",{ascending:false}),
-      SB.from("deposits").select("id,user_id,email,frz,bonus,phone,status,msg,kind,diamonds,ff_id,saldo,created_at").order("created_at",{ascending:false}),
+      SB.from("deposits").select("id,user_id,email,frz,bonus,phone,status,msg,kind,diamonds,ff_id,saldo,method,price,ref,created_at").order("created_at",{ascending:false}),
       SB.from("gift_cards").select("*").order("created_at",{ascending:false})]);
     S.orders=o.data||[];S.bal=b.data||0;S.prof=p.data;S.notes=n.data||[];S.deps=d.data||[];S.cards=gc.data||[];
     detectNew(S.notes);
@@ -146,22 +159,26 @@ async function load(){
 function render(){
   const a=$("#app"),n=$("#nav");
   if(!S.sess){n.hidden=true;return auth(a)}
-  if(S.prof&&S.prof.banned&&!S.prof.is_admin){n.hidden=true;a.innerHTML=bannedView();bind();return}
+  const isAdm=!!(S.prof&&S.prof.is_admin);
+  if(!S.open&&!isAdm){n.hidden=true;a.innerHTML=maint();bind();return}
+  if(S.prof&&S.prof.banned&&!isAdm){n.hidden=true;a.innerHTML=bannedView();bind();return}
   n.hidden=false;buildNav();
   let v;
   if(S.dep&&S.tab==="billetera")v=depView();
   else if(S.gv&&S.tab==="billetera")v=giftView();
   else v={ofertas,pedidos,billetera,avisos,admin}[S.tab]();
-  a.innerHTML=`<div class="top"><h1>FIRE Zone Recargas</h1><button class="alt" id="out" style="padding:8px 12px">Salir</button></div>`+v;
+  const warn=(isAdm&&!S.open)?`<div class="card lose" style="text-align:center">🔴 La web está APAGADA para los clientes</div>`:"";
+  a.innerHTML=`<div class="top"><h1>FIRE Zone Recargas</h1><button class="alt" id="out" style="padding:8px 12px">Salir</button></div>`+warn+v;
   bind();
   if(S.tab==="avisos"&&!S.dep&&unreadN()>0){
     SB.rpc("mark_notifications_read").then(()=>{S.notes.forEach(x=>{if(x.user_id===S.sess.user.id)x.read=true});buildNav()});
   }
 }
+function maint(){return`<div class="center"><h1>🛠 Web en mantenimiento</h1><p class="mu">Estamos haciendo una actualización. Vuelve en un rato.</p><a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a><button class="alt" id="out" style="margin-top:12px">Salir</button></div>`}
 function noteCards(l){return l.length?l.map(x=>`<div class="card"><div>${!x.read?'<span class="tag espera">NUEVO</span> ':""}${esc(x.text)}</div><div class="mu">${fmt(x.created_at)}</div></div>`).join(""):`<p class="mu">No tienes notificaciones.</p>`}
 function bannedView(){return`<div class="center"><h1>⛔ Cuenta suspendida</h1><p class="mu">Ya no puedes usar esta web. Si crees que es un error, escribe por WhatsApp.</p><div style="text-align:left">${noteCards(myNotes())}</div><button class="alt" id="out">Salir</button></div>`}
 function auth(a){
-  let h=`<div class="center"><h1>🔥 FIRE Zone Recargas</h1><p class="mu">Recarga diamantes de Free Fire con créditos FRZ</p>${getRef()&&S.mode==="signup"?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
+  let h=`<div class="center"><h1>🔥 FIRE Zone Recargas</h1><p class="mu">Recarga diamantes de Free Fire con créditos FRZ</p>${!S.open?'<p class="err">🛠 Web en mantenimiento. Solo el administrador puede entrar.</p>':""}${getRef()&&S.mode==="signup"?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
   h+=(S.mode==="signup"?`<input id="nm" placeholder="Tu nombre" value="${esc(S.name)}">`:"")+`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)">${fe("auth")}<button id="go" style="width:100%">${S.mode==="login"?"Iniciar sesión":"Crear cuenta"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${S.mode==="login"?"Crear cuenta nueva":"Ya tengo cuenta"}</button>`;
   a.innerHTML=h+`</div></div>`;
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
@@ -186,20 +203,50 @@ function auth(a){
     render();
   });
 }
+/* ---------- pago: bloques compartidos ---------- */
+function methRow(sel,attr,withRate){return`<div class="meths">${Object.entries(METHODS).map(([k,M])=>`<button class="meth ${sel===k?"on":""}" ${attr}="${k}">${M.icon} ${M.short}${withRate?`<div class="mu">${M.rt}</div>`:""}</button>`).join("")}</div>`}
+function payCard(m,price){
+  const M=METHODS[m];
+  let h=`<div class="card"><div class="row"><b>${M.icon} ${M.name}</b><span class="tag espera">Pendiente</span></div><div class="mu">Importe exacto</div><div class="row"><div><span class="amt">${N(price)}</span> <b style="color:var(--ac)">${M.unit}</b></div><button class="cp" data-c="${N(price)}">Copiar</button></div><div class="mu">Transfiere exactamente este importe.</div><hr>`;
+  if(m==="saldo")h+=`<div class="mu">Número de destino</div><div class="row"><div class="big" style="font-size:28px">${DEST}</div><button class="cp" data-c="${DEST}">Copiar</button></div>`;
+  if(m==="banco")h+=`<div class="mu">Tarjeta Bandec</div><div class="row"><div class="big" style="font-size:22px">${CARD_SHOW}</div><button class="cp" data-c="${CARD_RAW}">Copiar</button></div><div class="mu" style="margin-top:8px">Móvil a confirmar</div><div class="row"><div class="big" style="font-size:28px">${CONFIRM}</div><button class="cp" data-c="${CONFIRM}">Copiar</button></div>`;
+  if(m==="usdt")h+=`<div class="mu">Red</div><div><b>USDT (BEP20)</b></div><div class="mu" style="margin-top:8px">Dirección de billetera</div><div class="code" style="font-size:14px;word-break:break-all">${WALLET}</div><button class="cp" data-c="${WALLET}" style="margin-top:8px">Copiar dirección</button><div class="err" style="margin-top:8px">⚠️ Envía solo USDT por la red BEP20 (BNB Smart Chain). Otra red puede hacerte perder los fondos.</div>`;
+  return h+`</div>`;
+}
+function identCard(m,o,p){
+  if(m==="usdt")return`<div class="card"><b>Identifica tu transferencia</b><div class="mu">Hash de la transacción (TXID). Es opcional, pero ayuda a ubicar tu pago.</div><input id="${p}ref" maxlength="100" placeholder="0x..." value="${esc(o.ref)}"></div>`;
+  return`<div class="card"><b>Identifica tu transferencia</b><div class="mu">Número desde el que transferiste</div><div class="row" style="gap:8px"><b>+53</b><input id="${p}ph" inputmode="numeric" maxlength="8" placeholder="5XXXXXXX" value="${esc(o.phone)}"></div><div class="mu">Usaremos este número para localizar tu pago.</div></div>`;
+}
+function proofCard(o,p){
+  return`<div class="card bonus"><b>🕒 Revisión manual</b><div class="mu">Te avisaremos cuando se confirme el pago.</div></div><div class="card"><b>Comprobante de pago</b><div class="mu">Adjunta una imagen de la transferencia. Agiliza la revisión.</div><input type="file" id="${p}file" accept="image/*" hidden>${o.proof?`<img src="${o.proof}" style="max-width:100%;border-radius:10px;margin:8px 0">`:""}<button class="pick" id="${p}pick" style="margin-top:8px">📷 ${o.proof?"Cambiar imagen":"Adjuntar imagen"}</button></div>`;
+}
+function wire(p,get){
+  const ph=$("#"+p+"ph");if(ph)ph.oninput=()=>{get().phone=ph.value.replace(/\D/g,"").slice(0,8);ph.value=get().phone};
+  const rf=$("#"+p+"ref");if(rf)rf.oninput=()=>{get().ref=rf.value.slice(0,100)};
+  const pk=$("#"+p+"pick");if(pk)pk.onclick=()=>$("#"+p+"file").click();
+  const fi=$("#"+p+"file");
+  if(fi)fi.onchange=async e=>{const f=e.target.files[0];if(!f)return;try{get().proof=await compress(f);setf(p)}catch(x){setf(p,"No se pudo leer la imagen. Prueba con otra captura.")}render()};
+}
+function checkPay(m,o,key){
+  if(m!=="usdt"&&!/^\d{8}$/.test(o.phone)){setf(key,"Escribe el número desde el que transferiste (8 dígitos).");render();return false}
+  if(!o.proof){setf(key,"Adjunta la imagen de la transferencia.");render();return false}
+  return true;
+}
+/* ---------- ofertas ---------- */
 function ofertas(){
   if(!S.game)return`<h2>Ofertas</h2><button class="ff" id="ffb">🔥 Free Fire</button>`;
-  if(!S.method)return`<h2>Métodos de recarga</h2><div class="card"><b>⚡ Recarga Directa</b><div class="mu">Pagas con saldo móvil y recargamos directo a tu ID.</div><button id="mdir" style="width:100%;margin-top:8px">Recarga Directa</button></div><div class="card"><b>💳 Por Créditos</b><div class="mu">Pagas con tus créditos FRZ.</div><button id="mcre" style="width:100%;margin-top:8px">Por Créditos</button></div><button class="alt" id="back">← Volver</button>`;
+  if(!S.method)return`<h2>Métodos de recarga</h2><div class="card"><b>⚡ Recarga Directa</b><div class="mu">Pagas con saldo, transferencia o USDT y recargamos directo a tu ID.</div><button id="mdir" style="width:100%;margin-top:8px">Recarga Directa</button></div><div class="card"><b>💳 Por Créditos</b><div class="mu">Pagas con tus créditos FRZ.</div><button id="mcre" style="width:100%;margin-top:8px">Por Créditos</button></div><button class="alt" id="back">← Volver</button>`;
   if(S.method==="directo")return directo();
   if(S.sel==null)return`<h2>Por Créditos</h2>${OFFERS.map(([d,f],i)=>`<div class="card row"><div><b>${d} Diamantes</b><div class="mu">${f} FRZ</div></div><button data-o="${i}">Comprar</button></div>`).join("")}<button class="alt" id="backm">← Métodos</button>`;
   const [d,f]=OFFERS[S.sel];
   return`<h2>${d} Diamantes · ${f} FRZ</h2><div class="card"><label>Coloca tu ID</label><input id="ffid" inputmode="numeric" placeholder="ID de Free Fire">${fe("pay")}<button id="pay" style="width:100%">Pagar</button></div><button class="alt" id="back2">← Volver</button>`;
 }
 function directo(){
-  const r=S.dr;
-  if(!r)return`<h2>Recarga Directa</h2><div class="card bonus">⚡ Pagas con saldo móvil y recargamos tu ID sin usar créditos.</div>${DIRECT.map(([d,s],i)=>`<div class="card row"><div><b>${d} Diamantes</b><div class="mu">${s} Saldo Móvil</div></div><button data-dsel="${i}">Recargar</button></div>`).join("")}<button class="alt" id="backm">← Métodos</button>`;
-  const [d,s]=DIRECT[r.sel];
-  if(r.step===1)return`<h2>${d} Diamantes · ${s} saldo</h2><div class="card"><label>Coloca tu ID</label><input id="drid" inputmode="numeric" placeholder="ID de Free Fire" value="${esc(r.ff)}">${fe("dr")}<button id="drnext" style="width:100%">Continuar ›</button></div><button class="alt" id="drback">← Volver</button>`;
-  return`<h2>Recarga Directa</h2><div class="card row"><div><b>${d} Diamantes</b><div class="mu">ID: ${esc(r.ff)}</div></div><button class="cp" id="dredit">✏️ Editar</button></div><div class="card"><div class="row"><b>📱 Saldo móvil</b><span class="tag espera">Pendiente</span></div><div class="mu">Importe exacto</div><div class="row"><div><span class="amt">${s}</span> <b style="color:var(--ac)">saldo</b></div><button class="cp" data-c="${s}">Copiar</button></div><div class="mu">Transfiere exactamente este importe.</div><hr><div class="mu">Número de destino</div><div class="row"><div class="big" style="font-size:28px">${DEST}</div><button class="cp" data-c="${DEST}">Copiar</button></div></div><div class="card"><b>Identifica tu transferencia</b><div class="mu">Número desde el que transferiste</div><div class="row" style="gap:8px"><b>+53</b><input id="drph" inputmode="numeric" maxlength="8" placeholder="5XXXXXXX" value="${esc(r.phone)}"></div><div class="mu">Usaremos este número para localizar tu pago.</div></div><div class="card bonus"><b>🕒 Revisión manual</b><div class="mu">Te avisaremos cuando se confirme el pago.</div></div><div class="card"><b>Comprobante de pago</b><div class="mu">Adjunta una imagen de la transferencia. Agiliza la revisión.</div><input type="file" id="drfile" accept="image/*" hidden>${r.proof?`<img src="${r.proof}" style="max-width:100%;border-radius:10px;margin:8px 0">`:""}<button class="pick" id="drpick" style="margin-top:8px">📷 ${r.proof?"Cambiar imagen":"Adjuntar imagen"}</button></div>${fe("dr")}<button id="drsend" style="width:100%" ${r.busy?"disabled":""}>Ya transferí · Enviar a revisión ›</button>`;
+  const r=S.dr,m=S.dm,M=METHODS[m];
+  if(!r)return`<h2>Recarga Directa</h2><div class="mu" style="margin-bottom:6px">Método de pago</div>${methRow(m,"data-dm",false)}<div style="height:10px"></div>${OFFERS.map(([d],i)=>`<div class="card row"><div><b>${d} Diamantes</b><div class="mu">${ptxt(m,M.direct[i])}</div></div><button data-dsel="${i}">Recargar</button></div>`).join("")}<button class="alt" id="backm">← Métodos</button>`;
+  const d=OFFERS[r.sel][0],price=M.direct[r.sel];
+  if(r.step===1)return`<h2>${d} Diamantes · ${ptxt(m,price)}</h2><div class="card"><label>Coloca tu ID</label><input id="drid" inputmode="numeric" placeholder="ID de Free Fire" value="${esc(r.ff)}">${fe("dr")}<button id="drnext" style="width:100%">Continuar ›</button></div><button class="alt" id="drback">← Volver</button>`;
+  return`<h2>Recarga Directa</h2><div class="card row"><div><b>${d} Diamantes</b><div class="mu">ID: ${esc(r.ff)}</div></div><button class="cp" id="dredit">✏️ Editar</button></div>${payCard(m,price)}${identCard(m,r,"dr")}${proofCard(r,"dr")}${fe("dr")}<button id="drsend" style="width:100%" ${r.busy?"disabled":""}>Ya transferí · Enviar a revisión ›</button>`;
 }
 function bigOrder(o){
   const info=`<p><b>Oferta:</b> ${o.diamonds} Diamantes</p><p><b>ID:</b> ${esc(o.ff_id)}</p>`;
@@ -209,9 +256,9 @@ function bigOrder(o){
 }
 function bigDirect(x){
   const info=`<p><b>Oferta:</b> ${x.diamonds} Diamantes (Recarga Directa)</p><p><b>ID:</b> ${esc(x.ff_id)}</p>`;
-  if(x.status==="aceptado")return`<div class="card win"><div class="t">¡SU COMPRA SE HA REALIZADO CON ÉXITO!</div>${info}<p><b>Pagado:</b> ${sal(x)} saldo móvil</p><div class="mu">${fmt(x.created_at)}</div></div>`;
-  if(x.status==="rechazado")return`<div class="card lose"><div class="t">RECHAZADO</div>${info}<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p><p class="mu">Si ya transferiste, escribe por WhatsApp.</p><div class="mu">${fmt(x.created_at)}</div></div>`;
-  return`<div class="card"><div class="row"><b>${x.diamonds} Diamantes · Directa</b><span class="tag espera">En revisión</span></div><div class="mu">ID: ${esc(x.ff_id)} · ${sal(x)} saldo<br>${fmt(x.created_at)}</div></div>`;
+  if(x.status==="aceptado")return`<div class="card win"><div class="t">¡SU COMPRA SE HA REALIZADO CON ÉXITO!</div>${info}<p><b>Pagado:</b> ${px(x)}</p><div class="mu">${fmt(x.created_at)}</div></div>`;
+  if(x.status==="rechazado")return`<div class="card lose"><div class="t">RECHAZADO</div>${info}<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p><p class="mu">Si ya pagaste, escribe por WhatsApp.</p><div class="mu">${fmt(x.created_at)}</div></div>`;
+  return`<div class="card"><div class="row"><b>${x.diamonds} Diamantes · Directa</b><span class="tag espera">En revisión</span></div><div class="mu">ID: ${esc(x.ff_id)} · ${px(x)}<br>${fmt(x.created_at)}</div></div>`;
 }
 function pedidos(){
   const uid=S.sess.user.id;
@@ -223,25 +270,25 @@ function billetera(){
   const link=location.origin+location.pathname+"?ref="+(p.ref_code||"");
   let h=`<h2>Billetera</h2><div class="card"><div class="mu">Cuenta</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}</div><div class="mu" style="margin-top:10px">Saldo</div><div class="big">${N(S.bal)} FRZ</div>${fe("wal")}<button id="addc" style="width:100%;margin-top:10px">➕ Añadir créditos</button><button class="alt" id="gifts" style="width:100%;margin-top:8px">🎟 Gift Cards</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana</button></div>`;
   if(S.inv)h+=`<div class="card"><b>Invita y gana 5%</b><p class="mu">Comparte tu enlace. Cuando alguien que entre con él recargue créditos, tú ganas el 5% de esa recarga.</p><input readonly value="${esc(link)}" id="rlink"><div class="row"><button class="cp" id="rcopy" data-c="${esc(link)}">Copiar enlace</button><a class="abtn" style="margin:0" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text=${encodeURIComponent("Recarga Free Fire en FIRE Zone: "+link)}">WhatsApp</a></div></div>`;
-  h+=`<h2>Mis recargas</h2>`+(mine.length?mine.map(x=>`<div class="card"><div class="row"><b>${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}</b><span class="tag ${stCls(x.status)}">${stTxt(x.status)}</span></div><div class="mu">${sal(x)} saldo · ${fmt(x.created_at)}</div>${x.status==="rechazado"?`<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p>`:""}</div>`).join(""):`<p class="mu">Aún no tienes recargas.</p>`);
+  h+=`<h2>Mis recargas</h2>`+(mine.length?mine.map(x=>`<div class="card"><div class="row"><b>${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}</b><span class="tag ${stCls(x.status)}">${stTxt(x.status)}</span></div><div class="mu">${px(x)} · ${fmt(x.created_at)}</div>${x.status==="rechazado"?`<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p>`:""}</div>`).join(""):`<p class="mu">Aún no tienes recargas.</p>`);
   return h+`<a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">¿Necesitas ayuda? WhatsApp</a>`;
 }
 function giftView(){
   const uid=S.sess.user.id,mine=S.cards.filter(x=>x.owner_id===uid),buys=S.deps.filter(x=>x.user_id===uid&&x.kind==="gift"&&x.status!=="aceptado");
-  return`<button class="alt" id="gback">← Billetera</button><h2>Gift Cards</h2><div class="card gift"><div class="mu">Una gift card vale lo mismo que el crédito: 1 FRZ = ${RATE} saldo móvil.</div></div>${fe("gift")}<div class="card"><b>🎟 Canjear código</b><input id="gcode" placeholder="XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off" value="${esc(S.f.gcode||"")}"><button id="gredeem" style="width:100%">Canjear</button></div><div class="card"><b>🛒 Comprar una gift card</b><p class="mu">Pagas con saldo móvil y recibes un código para canjear tú o regalar.</p><button id="gbuy" style="width:100%">Comprar gift card</button></div><h2>Mis gift cards</h2>`+(mine.length?mine.map(x=>`<div class="card"><div class="row"><b>${N(x.frz)} FRZ</b><span class="tag ${x.status}">${stTxt(x.status)}</span></div><div class="row"><span class="code">${esc(x.code)}</span><button class="cp" data-c="${esc(x.code)}">Copiar</button></div><div class="mu">${fmt(x.created_at)}</div></div>`).join(""):`<p class="mu">Aún no tienes gift cards.</p>`)+(buys.length?`<h2>Compras en revisión</h2>`+buys.map(x=>`<div class="card"><div class="row"><b>${N(x.frz)} FRZ</b><span class="tag ${stCls(x.status)}">${stTxt(x.status)}</span></div><div class="mu">${sal(x)} saldo · ${fmt(x.created_at)}</div>${x.status==="rechazado"?`<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p>`:""}</div>`).join(""):"");
+  return`<button class="alt" id="gback">← Billetera</button><h2>Gift Cards</h2><div class="card gift"><div class="mu">Una gift card vale lo mismo que el crédito FRZ.</div></div>${fe("gift")}<div class="card"><b>🎟 Canjear código</b><input id="gcode" placeholder="XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off" value="${esc(S.f.gcode||"")}"><button id="gredeem" style="width:100%">Canjear</button></div><div class="card"><b>🛒 Comprar una gift card</b><p class="mu">Pagas con saldo, transferencia o USDT y recibes un código para canjear tú o regalar.</p><button id="gbuy" style="width:100%">Comprar gift card</button></div><h2>Mis gift cards</h2>`+(mine.length?mine.map(x=>`<div class="card"><div class="row"><b>${N(x.frz)} FRZ</b><span class="tag ${x.status}">${stTxt(x.status)}</span></div><div class="row"><span class="code">${esc(x.code)}</span><button class="cp" data-c="${esc(x.code)}">Copiar</button></div><div class="mu">${fmt(x.created_at)}</div></div>`).join(""):`<p class="mu">Aún no tienes gift cards.</p>`)+(buys.length?`<h2>Compras en revisión</h2>`+buys.map(x=>`<div class="card"><div class="row"><b>${N(x.frz)} FRZ</b><span class="tag ${stCls(x.status)}">${stTxt(x.status)}</span></div><div class="mu">${px(x)} · ${fmt(x.created_at)}</div>${x.status==="rechazado"?`<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p>`:""}</div>`).join(""):"");
 }
 function sumHTML(){
-  const c=calc(S.dep.frz);
-  return`<div class="row"><span class="mu">${isGift()?"Gift card":"Depósito"}</span><b>${N(c.f)} FRZ</b></div><div class="row"><span class="mu">Cuesta</span><b>${cost(c.f)} saldo</b></div>${c.elig?`<div class="row"><span class="mu">Bono 3%</span><b style="color:var(--ok)">+${N(c.bonus)} FRZ</b></div>`:""}<hr><div class="row"><span class="mu">${isGift()?"Código por":"Recibes"}</span><b>${N(c.get)} FRZ</b></div><div class="row"><span class="mu">Pagas</span><b>${cost(c.f)} saldo</b></div>`;
+  const c=calc(S.dep.frz),m=S.dep.method,p=pr(m,c.f);
+  return`<div class="row"><span class="mu">${isGift()?"Gift card":"Depósito"}</span><b>${N(c.f)} FRZ</b></div><div class="row"><span class="mu">Cuesta</span><b>${ptxt(m,p)}</b></div>${c.elig?`<div class="row"><span class="mu">Bono 3%</span><b style="color:var(--ok)">+${N(c.bonus)} FRZ</b></div>`:""}<hr><div class="row"><span class="mu">${isGift()?"Código por":"Recibes"}</span><b>${N(c.get)} FRZ</b></div><div class="row"><span class="mu">Pagas</span><b>${ptxt(m,p)}</b></div>`;
 }
 function depView(){return S.dep.step===1?dep1():dep2()}
 function dep1(){
   const d=S.dep,c=calc(d.frz),g=isGift();
-  return`<button class="alt" id="dback">← Volver</button><h2>${g?"Comprar gift card":"Añadir créditos"}</h2><div class="card hero"><div class="mu">Saldo actual</div><div class="big">${N(S.bal)} FRZ</div></div>${c.elig?`<div class="card bonus">✨ Primer depósito: se te suma un 3% extra.</div>`:""}<h2>1. Elige el monto</h2><div class="chips">${QUICK.map(q=>`<button class="chip ${!d.cus&&d.frz===q?"on":""}" data-q="${q}">${q} FRZ</button>`).join("")}</div><div class="mu">O escribe otro monto (mínimo 1 FRZ, puede llevar decimales)</div><input id="dcus" inputmode="decimal" placeholder="Ej.: 1.80" value="${esc(d.cus)}"><h2>2. Método de pago</h2><div class="row" style="gap:8px"><button class="meth on">📱 Saldo móvil<div class="mu">1 FRZ = ${RATE} saldo</div></button><button class="meth" disabled>💲 USDT<div class="mu">Todavía no disponible</div></button></div><div class="card" id="sum" style="margin-top:10px">${sumHTML()}</div><button id="dnext" style="width:100%" ${c.f<1?"disabled":""}>Continuar ›</button>`;
+  return`<button class="alt" id="dback">← Volver</button><h2>${g?"Comprar gift card":"Añadir créditos"}</h2><div class="card hero"><div class="mu">Saldo actual</div><div class="big">${N(S.bal)} FRZ</div></div>${c.elig?`<div class="card bonus">✨ Primer depósito: se te suma un 3% extra.</div>`:""}<h2>1. Elige el monto</h2><div class="chips">${QUICK.map(q=>`<button class="chip ${!d.cus&&d.frz===q?"on":""}" data-q="${q}">${q} FRZ</button>`).join("")}</div><div class="mu">O escribe otro monto (mínimo 1 FRZ, puede llevar decimales)</div><input id="dcus" inputmode="decimal" placeholder="Ej.: 1.80" value="${esc(d.cus)}"><h2>2. Método de pago</h2>${methRow(d.method,"data-pm",true)}<div class="card" id="sum" style="margin-top:10px">${sumHTML()}</div><button id="dnext" style="width:100%" ${c.f<1?"disabled":""}>Continuar ›</button>`;
 }
 function dep2(){
-  const d=S.dep,c=calc(d.frz),pay=cost(c.f),g=isGift();
-  return`<h2>${g?"Compra de gift card":"Recarga de saldo"}</h2><div class="card row"><div>${g?"Gift card de":"Depósito de"} <b>${N(c.f)} FRZ</b></div><button class="cp" id="dedit">✏️ Editar</button></div><div class="card"><div class="row"><b>📱 Saldo móvil</b><span class="tag espera">Pendiente</span></div><div class="mu">Importe exacto</div><div class="row"><div><span class="amt">${pay}</span> <b style="color:var(--ac)">saldo</b></div><button class="cp" data-c="${pay}">Copiar</button></div><div class="mu">Transfiere exactamente este importe.</div><hr><div class="mu">Número de destino</div><div class="row"><div class="big" style="font-size:28px">${DEST}</div><button class="cp" data-c="${DEST}">Copiar</button></div></div><div class="card"><b>Identifica tu transferencia</b><div class="mu">Número desde el que transferiste</div><div class="row" style="gap:8px"><b>+53</b><input id="dph" inputmode="numeric" maxlength="8" placeholder="5XXXXXXX" value="${esc(d.phone)}"></div><div class="mu">Usaremos este número para localizar tu pago.</div></div><div class="card bonus"><b>🕒 Revisión manual</b><div class="mu">Te avisaremos cuando se confirme el pago.</div></div><div class="card"><b>Comprobante de pago</b><div class="mu">Adjunta una imagen de la transferencia. Agiliza la revisión.</div><input type="file" id="dfile" accept="image/*" hidden>${d.proof?`<img src="${d.proof}" style="max-width:100%;border-radius:10px;margin:8px 0">`:""}<button class="pick" id="dpick" style="margin-top:8px">📷 ${d.proof?"Cambiar imagen":"Adjuntar imagen"}</button></div>${fe("dep")}<button id="dsend" style="width:100%" ${d.busy?"disabled":""}>Ya transferí · Enviar a revisión ›</button>`;
+  const d=S.dep,c=calc(d.frz),g=isGift(),price=pr(d.method,c.f);
+  return`<h2>${g?"Compra de gift card":"Recarga de créditos"}</h2><div class="card row"><div>${g?"Gift card de":"Depósito de"} <b>${N(c.f)} FRZ</b></div><button class="cp" id="dedit">✏️ Editar</button></div>${payCard(d.method,price)}${identCard(d.method,d,"d")}${proofCard(d,"d")}${fe("d")}<button id="dsend" style="width:100%" ${d.busy?"disabled":""}>Ya transferí · Enviar a revisión ›</button>`;
 }
 function avisos(){
   const can=("Notification" in window)&&Notification.permission==="default";
@@ -249,9 +296,10 @@ function avisos(){
 }
 function mini(o){return`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${N(o.frz)} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)} · ${fmt(o.created_at)}</div></div>`}
 function depCard(x){
-  const c=cm(x.user_id),pr=S.proofs[x.id],dir=x.kind==="directo";
+  const c=cm(x.user_id),pf=S.proofs[x.id],dir=x.kind==="directo";
   const title=dir?`⚡ Directa · ${x.diamonds} diamantes · ID ${esc(x.ff_id)}`:`${x.kind==="gift"?"🎟 Gift card · ":""}${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}`;
-  return`<div class="card"><div class="row"><b>${title}</b><span class="tag ${stCls(x.status)}">${stTxt(x.status)}</span></div><div class="mu">${esc(c.name||"")} · ${esc(x.email)}<br>Tel: +53 ${esc(x.phone)} · Costo: ${sal(x)} saldo<br>${fmt(x.created_at)}</div>${pr?`<img src="${pr}" style="max-width:100%;border-radius:10px;margin-top:8px">`:`<button class="alt" data-pf="${x.id}" style="margin-top:8px">Ver captura</button>`}${x.status==="pendiente"?`<input data-dm="${x.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-da="${x.id}">ACEPTAR</button><button class="no" data-dr="${x.id}">RECHAZAR</button></div>`:""}</div>`;
+  const who=x.phone?`Tel: +53 ${esc(x.phone)}`:`TXID: ${esc(x.ref||"-")}`;
+  return`<div class="card"><div class="row"><b>${title}</b><span class="tag ${stCls(x.status)}">${stTxt(x.status)}</span></div><div class="mu">${esc(c.name||"")} · ${esc(x.email)}<br>${METHODS[mOf(x)].icon} ${METHODS[mOf(x)].name} · ${px(x)}<br>${who}<br>${fmt(x.created_at)}</div>${pf?`<img src="${pf}" style="max-width:100%;border-radius:10px;margin-top:8px">`:`<button class="alt" data-pf="${x.id}" style="margin-top:8px">Ver captura</button>`}${x.status==="pendiente"?`<input data-dm2="${x.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-da="${x.id}">ACEPTAR</button><button class="no" data-dr2="${x.id}">RECHAZAR</button></div>`:""}</div>`;
 }
 function cardAdmin(x){
   const own=cm(x.owner_id),red=cm(x.redeemed_by);
@@ -260,14 +308,15 @@ function cardAdmin(x){
 function admin(){
   if(!S.adm)return`<h2>Administración</h2><div class="card"><label>Contraseña de administrador</label><input id="apw" type="password" placeholder="Contraseña">${fe("gate")}<button id="unlock" style="width:100%">Entrar</button></div>`;
   const cl=S.clients.filter(c=>!c.admin),w=S.orders.filter(o=>o.status==="espera"),dp=S.deps.filter(x=>x.status==="pendiente");
-  let h=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big">${cl.length}</div></div><div><div class="mu">Pedidos</div><div class="big">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big">${dp.length}</div></div></div>${fe("adm")}`;
+  let h=`<div class="card ${S.open?"":"lose"}"><div class="row"><div><b>Estado de la web</b><div class="mu">${S.open?"🟢 Encendida: los clientes pueden usarla":"🔴 Apagada: solo tú puedes entrar"}</div></div><button class="${S.open?"no":"ok"}" id="tog">${S.open?"Apagar web":"Encender web"}</button></div>${fe("tog")}</div>`;
+  h+=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big">${cl.length}</div></div><div><div class="mu">Pedidos</div><div class="big">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big">${dp.length}</div></div></div>${fe("adm")}`;
   h+=`<div class="row" style="gap:4px;margin-bottom:10px">${[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"],["frz","FRZ"],["gift","Gift"]].map(([k,l])=>`<button class="${S.asub===k?"":"alt"}" data-s="${k}" style="flex:1;padding:10px 0;font-size:12px">${l}</button>`).join("")}</div>`;
   if(S.asub==="clientes")h+=S.selc?detail():cl.map(c=>`<div class="card row"><div><b>${esc(c.name||"(sin nombre)")}</b> ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}<br>${N(c.balance)} FRZ · ${c.orders_count} pedidos</div></div><button data-v="${c.id}">Ver</button></div>`).join("")||`<p class="mu">Aún no hay clientes.</p>`;
   if(S.asub==="recargas")h+=S.deps.length?S.deps.slice().sort((a,b)=>(a.status==="pendiente"?0:1)-(b.status==="pendiente"?0:1)).map(depCard).join(""):`<p class="mu">Sin recargas.</p>`;
   if(S.asub==="pedidos")h+=S.orders.length?S.orders.map(o=>`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${N(o.frz)} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)}<br>${esc(cm(o.user_id).name||"")} · ${esc(o.email)} · ${fmt(o.created_at)}</div>${o.status==="espera"?`<input data-m="${o.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-a="${o.id}">ACEPTAR</button><button class="no" data-r="${o.id}">RECHAZAR</button></div>`:""}</div>`).join(""):`<p class="mu">Sin pedidos.</p>`;
   if(S.asub==="frz")h+=`<div class="card"><div class="mu">Tu billetera</div><div class="big">∞ FRZ</div></div><h2>Enviar</h2><div class="card"><input id="aem" type="email" placeholder="Correo del cliente"><input id="aam" type="number" step="any" min="0.01" placeholder="Cantidad FRZ">${fe("send")}<button id="send" style="width:100%">Enviar</button></div><h2>Quitar FRZ</h2><div class="card"><input id="rem" type="email" placeholder="Correo del cliente"><input id="ram" type="number" step="any" min="0.01" placeholder="Cantidad FRZ a quitar">${fe("rmv")}<button class="no" id="rmv" style="width:100%">Quitar</button></div>`;
   if(S.asub==="gift"){
-    h+=`<div class="card gift"><b>Gift cards infinitas</b><div class="mu">Crea las que quieras, gratis. Cada código se puede canjear una sola vez.</div></div><div class="card"><input id="gam" type="number" step="any" min="0.01" placeholder="Valor en FRZ (ej.: 1 = ${RATE} saldo)" value="${esc(S.f.gam||"")}"><input id="gqty" type="number" min="1" max="50" placeholder="Cantidad (1 a 50)" value="${esc(S.f.gqty||"1")}"><input id="gnote" maxlength="80" placeholder="Nota (opcional)" value="${esc(S.f.gnote||"")}">${fe("gnew")}<button id="gcreate" style="width:100%">Crear gift cards</button></div>`;
+    h+=`<div class="card gift"><b>Gift cards infinitas</b><div class="mu">Crea las que quieras, gratis. Cada código se puede canjear una sola vez.</div></div><div class="card"><input id="gam" type="number" step="any" min="0.01" placeholder="Valor en FRZ" value="${esc(S.f.gam||"")}"><input id="gqty" type="number" min="1" max="50" placeholder="Cantidad (1 a 50)" value="${esc(S.f.gqty||"1")}"><input id="gnote" maxlength="80" placeholder="Nota (opcional)" value="${esc(S.f.gnote||"")}">${fe("gnew")}<button id="gcreate" style="width:100%">Crear gift cards</button></div>`;
     if(S.newCodes.length)h+=`<div class="card win"><div class="t" style="font-size:20px">Códigos creados</div>${S.newCodes.map(c=>`<div class="row"><span class="code" style="font-size:18px">${esc(c)}</span><button class="cp" data-c="${esc(c)}">Copiar</button></div>`).join("")}<button class="cp" data-c="${esc(S.newCodes.join("\n"))}" style="margin-top:8px">Copiar todos</button></div>`;
     h+=`<h2>Todas las gift cards (${S.cards.length})</h2>`+(S.cards.length?S.cards.map(cardAdmin).join(""):`<p class="mu">Aún no hay gift cards.</p>`);
   }
@@ -282,7 +331,7 @@ function bind(){
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
   g("#out",()=>SB.auth.signOut());
   g("#npush",()=>{try{Notification.requestPermission().then(()=>render())}catch(e){}});
-  /* Free Fire: métodos */
+  /* Free Fire */
   g("#ffb",()=>{S.game=true;S.method=null;render()});
   g("#back",()=>{S.game=false;render()});
   g("#mdir",()=>{S.method="directo";S.dr=null;S.f={};render()});
@@ -297,39 +346,31 @@ function bind(){
     if(error){setf("pay",clean(error.message));return render()}
     S.tab="pedidos";resetNav();await load();
   });
-  /* Recarga directa */
-  document.querySelectorAll("[data-dsel]").forEach(b=>b.onclick=()=>{S.dr={sel:+b.dataset.dsel,step:1,ff:"",phone:"",proof:"",busy:false};S.f={};render()});
+  /* recarga directa */
+  document.querySelectorAll("[data-dm]").forEach(b=>b.onclick=()=>{S.dm=b.dataset.dm;render()});
+  document.querySelectorAll("[data-dsel]").forEach(b=>b.onclick=()=>{S.dr={sel:+b.dataset.dsel,step:1,ff:"",phone:"",ref:"",proof:"",busy:false};S.f={};render()});
   g("#drback",()=>{S.dr=null;S.f={};render()});
   g("#drnext",()=>{
-    const v=$("#drid").value.trim();
-    if(!/^\d{5,14}$/.test(v)){setf("dr","Escribe un ID válido.");S.dr.ff=v;return render()}
-    S.dr.ff=v;S.dr.step=2;S.f={};render();window.scrollTo(0,0);
+    const v=$("#drid").value.trim();S.dr.ff=v;
+    if(!/^\d{5,14}$/.test(v)){setf("dr","Escribe un ID válido.");return render()}
+    S.dr.step=2;S.f={};render();window.scrollTo(0,0);
   });
   g("#dredit",()=>{S.dr.step=1;render()});
-  const dph=$("#drph");
-  if(dph)dph.oninput=()=>{S.dr.phone=dph.value.replace(/\D/g,"").slice(0,8);dph.value=S.dr.phone};
-  g("#drpick",()=>$("#drfile").click());
-  const dfi=$("#drfile");
-  if(dfi)dfi.onchange=async e=>{
-    const f=e.target.files[0];if(!f)return;
-    try{S.dr.proof=await compress(f);setf("dr")}catch(x){setf("dr","No se pudo leer la imagen. Prueba con otra captura.")}
-    render();
-  };
+  wire("dr",()=>S.dr);
   g("#drsend",async()=>{
-    const r=S.dr,[d]=DIRECT[r.sel];
-    if(!/^\d{8}$/.test(r.phone)){setf("dr","Escribe el número desde el que transferiste (8 dígitos).");return render()}
-    if(!r.proof){setf("dr","Adjunta la imagen de la transferencia.");return render()}
+    const r=S.dr,m=S.dm;if(!checkPay(m,r,"dr"))return;
     r.busy=true;render();
-    const {error}=await SB.rpc("create_direct",{p_diamonds:d,p_ff:r.ff,p_phone:r.phone,p_proof:r.proof});
+    const {error}=await SB.rpc("create_direct",{p_diamonds:OFFERS[r.sel][0],p_ff:r.ff,p_phone:m==="usdt"?"":r.phone,p_proof:r.proof,p_method:m,p_ref:r.ref||""});
     if(error){r.busy=false;setf("dr",clean(error.message));return render()}
     S.tab="pedidos";resetNav();await load();window.scrollTo(0,0);
   });
-  /* billetera y recargas de crédito */
-  g("#addc",()=>{S.dep={kind:"credito",step:1,frz:1,cus:"",phone:"",proof:"",busy:false};S.f={};render();window.scrollTo(0,0)});
+  /* créditos y gift cards */
+  g("#addc",()=>{S.dep={kind:"credito",method:"saldo",step:1,frz:1,cus:"",phone:"",ref:"",proof:"",busy:false};S.f={};render();window.scrollTo(0,0)});
   g("#inv",()=>{S.inv=!S.inv;render()});
   document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>copyTxt(b.dataset.c,b));
   g("#dback",()=>{S.dep=null;S.f={};render()});
   document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{S.dep.frz=+b.dataset.q;S.dep.cus="";render()});
+  document.querySelectorAll("[data-pm]").forEach(b=>b.onclick=()=>{S.dep.method=b.dataset.pm;render()});
   const cus=$("#dcus");
   if(cus)cus.oninput=()=>{
     S.dep.cus=cus.value;S.dep.frz=parseFloat(cus.value.replace(",","."))||0;
@@ -339,41 +380,37 @@ function bind(){
   };
   g("#dnext",()=>{if(calc(S.dep.frz).f<1)return;S.dep.step=2;S.f={};render();window.scrollTo(0,0)});
   g("#dedit",()=>{S.dep.step=1;render()});
-  const ph=$("#dph");
-  if(ph)ph.oninput=()=>{S.dep.phone=ph.value.replace(/\D/g,"").slice(0,8);ph.value=S.dep.phone};
-  g("#dpick",()=>$("#dfile").click());
-  const fi=$("#dfile");
-  if(fi)fi.onchange=async e=>{
-    const f=e.target.files[0];if(!f)return;
-    try{S.dep.proof=await compress(f);setf("dep")}catch(x){setf("dep","No se pudo leer la imagen. Prueba con otra captura.")}
-    render();
-  };
+  wire("d",()=>S.dep);
   g("#dsend",async()=>{
-    const d=S.dep,gift=d.kind==="gift";
-    if(!/^\d{8}$/.test(d.phone)){setf("dep","Escribe el número desde el que transferiste (8 dígitos).");return render()}
-    if(!d.proof){setf("dep","Adjunta la imagen de la transferencia.");return render()}
+    const d=S.dep,gift=d.kind==="gift";if(!checkPay(d.method,d,"d"))return;
     d.busy=true;render();
-    const {error}=await SB.rpc(gift?"create_gift_purchase":"create_deposit",{p_frz:calc(d.frz).f,p_phone:d.phone,p_proof:d.proof});
-    if(error){d.busy=false;setf("dep",clean(error.message));return render()}
+    const {error}=await SB.rpc(gift?"create_gift_purchase":"create_deposit",{p_frz:calc(d.frz).f,p_phone:d.method==="usdt"?"":d.phone,p_proof:d.proof,p_method:d.method,p_ref:d.ref||""});
+    if(error){d.busy=false;setf("d",clean(error.message));return render()}
     S.dep=null;S.tab="billetera";S.f={};
     if(gift){S.gv=true;setf("gift","","✅ Compra enviada. Cuando se acepte, tu código aparece aquí y te llega un aviso.")}
     else{S.gv=false;setf("wal","","✅ Recarga enviada. Está pendiente de revisión.")}
     await load();window.scrollTo(0,0);
   });
-  /* gift cards cliente */
   g("#gifts",()=>{S.gv=true;S.f={};render();window.scrollTo(0,0)});
   g("#gback",()=>{S.gv=false;S.f={};render()});
-  g("#gbuy",()=>{S.dep={kind:"gift",step:1,frz:1,cus:"",phone:"",proof:"",busy:false};S.f={};render();window.scrollTo(0,0)});
+  g("#gbuy",()=>{S.dep={kind:"gift",method:"saldo",step:1,frz:1,cus:"",phone:"",ref:"",proof:"",busy:false};S.f={};render();window.scrollTo(0,0)});
   g("#gredeem",async()=>{
     const code=$("#gcode").value.trim();
     if(code.length<6){setf("gift","Escribe el código de tu gift card.");S.f.gcode=code;return render()}
     const {data,error}=await SB.rpc("redeem_gift",{p_code:code});
-    if(error){setf("gift",clean(error.message));return render()}
+    if(error){setf("gift",clean(error.message));S.f.gcode=code;return render()}
     if(String(data).startsWith("ok:")){setf("gift","",`✅ ¡Canjeada! Se sumaron ${data.slice(3)} FRZ a tu billetera.`);await load()}
     else{setf("gift",String(data).replace(/^error:/,""));S.f.gcode=code;render()}
   });
   /* admin */
   g("#unlock",()=>{if($("#apw").value===ADMIN_PW){S.adm=true;S.f={}}else setf("gate","Contraseña incorrecta.");render()});
+  g("#tog",async()=>{
+    const next=!S.open;
+    if(!next&&!confirm("¿Apagar la web? Los clientes verán 'Web en mantenimiento' y solo tú podrás entrar."))return;
+    const {error}=await SB.rpc("set_site_open",{p_open:next});
+    setf("tog",error?clean(error.message):"");
+    await loadSettings();render();
+  });
   document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{S.asub=b.dataset.s;S.selc=null;S.f={};render()});
   document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.selc=b.dataset.v;S.f={};render()});
   g("#cback",()=>{S.selc=null;S.f={};render()});
@@ -402,10 +439,10 @@ function bind(){
     const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.da,p_accept:true,p_msg:""});
     setf("adm",error?clean(error.message):"");await load();
   });
-  document.querySelectorAll("[data-dr]").forEach(b=>b.onclick=async()=>{
-    const m=document.querySelector(`[data-dm="${b.dataset.dr}"]`).value.trim();
+  document.querySelectorAll("[data-dr2]").forEach(b=>b.onclick=async()=>{
+    const m=document.querySelector(`[data-dm2="${b.dataset.dr2}"]`).value.trim();
     b.disabled=true;
-    const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.dr,p_accept:false,p_msg:m});
+    const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.dr2,p_accept:false,p_msg:m});
     setf("adm",error?clean(error.message):"");await load();
   });
   document.querySelectorAll("[data-ban]").forEach(b=>b.onclick=async()=>{
