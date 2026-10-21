@@ -16,6 +16,7 @@ button.alt{background:transparent;border:1px solid var(--bd);color:var(--tx)}
 button.ok{background:var(--ok)}button.no{background:var(--no)}
 button:disabled{opacity:.45;cursor:not-allowed}
 .abtn{display:block;text-align:center;text-decoration:none;margin-top:10px;background:var(--wa)}
+a.lk{color:var(--mu);font-size:14px;display:block;margin-top:12px;text-align:center}
 input{width:100%;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin:6px 0}
 .big{font-size:34px;font-weight:800}.mu{color:var(--mu);font-size:14px}
 .tag{padding:3px 10px;border-radius:99px;font-size:13px;font-weight:700}
@@ -67,7 +68,7 @@ const QUICK=[1,5,10,25,50];
 const SB=supabase.createClient(SB_URL,SB_KEY);
 (function(){const q=new URLSearchParams(location.search).get("ref");if(q){try{localStorage.setItem("frz_ref",q.toLowerCase().slice(0,16))}catch(e){}}})();
 const getRef=()=>{try{return localStorage.getItem("frz_ref")||""}catch(e){return ""}};
-const S={sess:null,prof:null,open:true,mode:getRef()?"signup":"login",email:"",name:"",tab:"ofertas",game:false,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],cards:[],newCodes:[],proofs:{},bal:0,notes:[],seen:null,clients:[],adm:false,asub:"clientes",selc:null,dep:null,gv:false,inv:false,f:{}};
+const S={sess:null,prof:null,open:true,mode:getRef()?"signup":"login",email:"",name:"",phone:"",tab:"ofertas",game:false,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],cards:[],newCodes:[],proofs:{},bal:0,notes:[],seen:null,clients:[],adm:false,asub:"clientes",selc:null,tmp:null,cp:false,dep:null,gv:false,inv:false,f:{}};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("es");
@@ -78,13 +79,15 @@ const ptxt=(m,p)=>N(p)+" "+METHODS[m].unit;
 const mOf=x=>x.method||"saldo";
 const priceOf=x=>+(x.price??x.saldo??0);
 const px=x=>ptxt(mOf(x),priceOf(x));
+const waNum=p=>{p=String(p||"").replace(/\D/g,"");return p.length===8?"53"+p:p};
 const fe=k=>{const x=S.f[k]||{};return`<div class="err">${esc(x.e)}</div><div class="ok2">${esc(x.m)}</div>`};
 const setf=(k,e,m)=>{S.f[k]={e:e||"",m:m||""}};
 const cm=id=>S.clients.find(c=>c.id===id)||{};
 const stCls=s=>s==="pendiente"?"espera":s;
 const stTxt=s=>({pendiente:"Pendiente",aceptado:"Aceptado",rechazado:"Rechazado",disponible:"Disponible",canjeada:"Canjeada",anulada:"Anulada"}[s]||s);
 const isGift=()=>S.dep&&S.dep.kind==="gift";
-const resetNav=()=>{S.game=false;S.method=null;S.sel=null;S.dr=null;S.selc=null;S.dep=null;S.gv=false;S.f={}};
+const resetNav=()=>{S.game=false;S.method=null;S.sel=null;S.dr=null;S.selc=null;S.tmp=null;S.cp=false;S.dep=null;S.gv=false;S.f={}};
+const forgotUrl=()=>WA+"?text="+encodeURIComponent("Hola, olvidé mi contraseña de FIRE Zone Recargas. Mi correo es: "+(S.email||"(escribe tu correo aquí)"));
 
 async function copyTxt(t,btn){
   try{await navigator.clipboard.writeText(t)}catch(e){const i=document.createElement("input");i.value=t;document.body.appendChild(i);i.select();document.execCommand("copy");i.remove()}
@@ -162,6 +165,7 @@ function render(){
   const isAdm=!!(S.prof&&S.prof.is_admin);
   if(!S.open&&!isAdm){n.hidden=true;a.innerHTML=maint();bind();return}
   if(S.prof&&S.prof.banned&&!isAdm){n.hidden=true;a.innerHTML=bannedView();bind();return}
+  if(S.prof&&!S.prof.verified&&!isAdm){n.hidden=true;a.innerHTML=verifyView();bind();return}
   n.hidden=false;buildNav();
   let v;
   if(S.dep&&S.tab==="billetera")v=depView();
@@ -175,29 +179,37 @@ function render(){
   }
 }
 function maint(){return`<div class="center"><h1>🛠 Web en mantenimiento</h1><p class="mu">Estamos haciendo una actualización. Vuelve en un rato.</p><a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a><button class="alt" id="out" style="margin-top:12px">Salir</button></div>`}
+function verifyView(){
+  const p=S.prof||{};
+  const msg=`Hola, acabo de crear mi cuenta en FIRE Zone Recargas.\nNombre: ${p.name||""}\nCorreo: ${p.email||""}\nTeléfono: ${p.phone||""}\nCódigo: ${p.vcode||""}`;
+  return`<div class="center"><h1>✅ Verifica tu cuenta</h1><p class="mu">Para usar la web, envíanos este mensaje por WhatsApp. Te verificamos en cuanto lo recibamos.</p><div class="card" style="text-align:left"><div class="mu">Tu código</div><div class="code">${esc(p.vcode||"")}</div><div class="mu" style="margin-top:10px">Mensaje que se enviará</div><div style="white-space:pre-line">${esc(msg)}</div></div><a class="abtn" href="${WA}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener noreferrer">📲 Enviar mensaje por WhatsApp</a><button id="recheck" style="width:100%;margin-top:10px">Ya lo envié · Comprobar</button><button class="alt" id="out" style="margin-top:10px">Salir</button></div>`;
+}
 function noteCards(l){return l.length?l.map(x=>`<div class="card"><div>${!x.read?'<span class="tag espera">NUEVO</span> ':""}${esc(x.text)}</div><div class="mu">${fmt(x.created_at)}</div></div>`).join(""):`<p class="mu">No tienes notificaciones.</p>`}
 function bannedView(){return`<div class="center"><h1>⛔ Cuenta suspendida</h1><p class="mu">Ya no puedes usar esta web. Si crees que es un error, escribe por WhatsApp.</p><div style="text-align:left">${noteCards(myNotes())}</div><button class="alt" id="out">Salir</button></div>`}
 function auth(a){
-  let h=`<div class="center"><h1>🔥 FIRE Zone Recargas</h1><p class="mu">Recarga diamantes de Free Fire con créditos FRZ</p>${!S.open?'<p class="err">🛠 Web en mantenimiento. Solo el administrador puede entrar.</p>':""}${getRef()&&S.mode==="signup"?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
-  h+=(S.mode==="signup"?`<input id="nm" placeholder="Tu nombre" value="${esc(S.name)}">`:"")+`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)">${fe("auth")}<button id="go" style="width:100%">${S.mode==="login"?"Iniciar sesión":"Crear cuenta"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${S.mode==="login"?"Crear cuenta nueva":"Ya tengo cuenta"}</button>`;
+  const su=S.mode==="signup";
+  let h=`<div class="center"><h1>🔥 FIRE Zone Recargas</h1><p class="mu">Recarga diamantes de Free Fire con créditos FRZ</p>${!S.open?'<p class="err">🛠 Web en mantenimiento. Solo el administrador puede entrar.</p>':""}${getRef()&&su?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
+  h+=(su?`<input id="nm" placeholder="Tu nombre" value="${esc(S.name)}"><input id="ph" type="tel" inputmode="numeric" placeholder="Tu número de WhatsApp (ej.: 5355551234)" value="${esc(S.phone)}">`:"")+`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)">${fe("auth")}<button id="go" style="width:100%">${su?"Crear cuenta":"Iniciar sesión"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${su?"Ya tengo cuenta":"Crear cuenta nueva"}</button>${su?'<p class="mu" style="margin-top:10px">Después de crear la cuenta te pediremos enviar un mensaje por WhatsApp para verificarla.</p>':`<a class="lk" id="forgot" href="${forgotUrl()}" target="_blank" rel="noopener noreferrer">¿Olvidaste tu contraseña? Escríbenos por WhatsApp</a>`}`;
   a.innerHTML=h+`</div></div>`;
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
-  g("#sw",()=>{S.mode=S.mode==="login"?"signup":"login";S.f={};render()});
+  const em=$("#em");if(em)em.oninput=()=>{S.email=em.value.trim().toLowerCase();const f=$("#forgot");if(f)f.href=forgotUrl()};
+  g("#sw",()=>{S.mode=su?"login":"signup";S.f={};render()});
   g("#go",async()=>{
-    const em=$("#em").value.trim().toLowerCase(),pw=$("#pw").value,nm=S.mode==="signup"?$("#nm").value.trim():"";S.email=em;S.name=nm;
-    if(S.mode==="signup"&&nm.length<2){setf("auth","Escribe tu nombre.");return render()}
-    if(!/^\S+@\S+\.\S+$/.test(em)||pw.length<6){setf("auth","Escribe un correo válido y una contraseña de 6 o más caracteres.");return render()}
-    if(S.mode==="signup"){
-      const {data,error}=await SB.auth.signUp({email:em,password:pw,options:{data:{name:nm,ref:getRef()}}});
+    const e=$("#em").value.trim().toLowerCase(),pw=$("#pw").value,nm=su?$("#nm").value.trim():"",ph=su?$("#ph").value.replace(/\D/g,""):"";S.email=e;S.name=nm;S.phone=su?$("#ph").value.trim():S.phone;
+    if(su&&nm.length<2){setf("auth","Escribe tu nombre.");return render()}
+    if(su&&!/^\d{8,15}$/.test(ph)){setf("auth","Escribe tu número de WhatsApp (de 8 a 15 dígitos).");return render()}
+    if(!/^\S+@\S+\.\S+$/.test(e)||pw.length<6){setf("auth","Escribe un correo válido y una contraseña de 6 o más caracteres.");return render()}
+    if(su){
+      const {data,error}=await SB.auth.signUp({email:e,password:pw,options:{data:{name:nm,phone:ph,ref:getRef()}}});
       if(error)setf("auth",error.message);
       else if(data.session){S.sess=data.session;setf("auth");await load();return}
       else{
-        const r=await SB.auth.signInWithPassword({email:em,password:pw});
+        const r=await SB.auth.signInWithPassword({email:e,password:pw});
         if(r.data&&r.data.session){S.sess=r.data.session;setf("auth");await load();return}
         setf("auth","Cuenta creada. Toca “Ya tengo cuenta” e inicia sesión.");
       }
     }else{
-      const {error}=await SB.auth.signInWithPassword({email:em,password:pw});
+      const {error}=await SB.auth.signInWithPassword({email:e,password:pw});
       setf("auth",error?"Correo o contraseña incorrectos.":"");
     }
     render();
@@ -268,7 +280,8 @@ function pedidos(){
 function billetera(){
   const p=S.prof||{},mine=S.deps.filter(x=>x.user_id===S.sess.user.id&&x.kind==="credito");
   const link=location.origin+location.pathname+"?ref="+(p.ref_code||"");
-  let h=`<h2>Billetera</h2><div class="card"><div class="mu">Cuenta</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}</div><div class="mu" style="margin-top:10px">Saldo</div><div class="big">${N(S.bal)} FRZ</div>${fe("wal")}<button id="addc" style="width:100%;margin-top:10px">➕ Añadir créditos</button><button class="alt" id="gifts" style="width:100%;margin-top:8px">🎟 Gift Cards</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana</button></div>`;
+  let h=`<h2>Billetera</h2><div class="card"><div class="mu">Cuenta</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}${p.phone?" · "+esc(p.phone):""}</div><div class="mu" style="margin-top:10px">Saldo</div><div class="big">${N(S.bal)} FRZ</div>${fe("wal")}<button id="addc" style="width:100%;margin-top:10px">➕ Añadir créditos</button><button class="alt" id="gifts" style="width:100%;margin-top:8px">🎟 Gift Cards</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana</button><button class="alt" id="cpb" style="width:100%;margin-top:8px">🔑 Cambiar contraseña</button></div>`;
+  if(S.cp)h+=`<div class="card"><b>Cambiar contraseña</b><input id="np" type="password" placeholder="Nueva contraseña (mínimo 6)">${fe("cp")}<button id="cpsave" style="width:100%">Guardar contraseña</button></div>`;
   if(S.inv)h+=`<div class="card"><b>Invita y gana 5%</b><p class="mu">Comparte tu enlace. Cuando alguien que entre con él recargue créditos, tú ganas el 5% de esa recarga.</p><input readonly value="${esc(link)}" id="rlink"><div class="row"><button class="cp" id="rcopy" data-c="${esc(link)}">Copiar enlace</button><a class="abtn" style="margin:0" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text=${encodeURIComponent("Recarga Free Fire en FIRE Zone: "+link)}">WhatsApp</a></div></div>`;
   h+=`<h2>Mis recargas</h2>`+(mine.length?mine.map(x=>`<div class="card"><div class="row"><b>${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}</b><span class="tag ${stCls(x.status)}">${stTxt(x.status)}</span></div><div class="mu">${px(x)} · ${fmt(x.created_at)}</div>${x.status==="rechazado"?`<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p>`:""}</div>`).join(""):`<p class="mu">Aún no tienes recargas.</p>`);
   return h+`<a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">¿Necesitas ayuda? WhatsApp</a>`;
@@ -307,11 +320,11 @@ function cardAdmin(x){
 }
 function admin(){
   if(!S.adm)return`<h2>Administración</h2><div class="card"><label>Contraseña de administrador</label><input id="apw" type="password" placeholder="Contraseña">${fe("gate")}<button id="unlock" style="width:100%">Entrar</button></div>`;
-  const cl=S.clients.filter(c=>!c.admin),w=S.orders.filter(o=>o.status==="espera"),dp=S.deps.filter(x=>x.status==="pendiente");
+  const cl=S.clients.filter(c=>!c.admin),w=S.orders.filter(o=>o.status==="espera"),dp=S.deps.filter(x=>x.status==="pendiente"),nv=cl.filter(c=>!c.verified).length;
   let h=`<div class="card ${S.open?"":"lose"}"><div class="row"><div><b>Estado de la web</b><div class="mu">${S.open?"🟢 Encendida: los clientes pueden usarla":"🔴 Apagada: solo tú puedes entrar"}</div></div><button class="${S.open?"no":"ok"}" id="tog">${S.open?"Apagar web":"Encender web"}</button></div>${fe("tog")}</div>`;
-  h+=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big">${cl.length}</div></div><div><div class="mu">Pedidos</div><div class="big">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big">${dp.length}</div></div></div>${fe("adm")}`;
+  h+=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big" style="font-size:26px">${cl.length}</div></div><div><div class="mu">Sin verificar</div><div class="big" style="font-size:26px">${nv}</div></div><div><div class="mu">Pedidos</div><div class="big" style="font-size:26px">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big" style="font-size:26px">${dp.length}</div></div></div>${fe("adm")}`;
   h+=`<div class="row" style="gap:4px;margin-bottom:10px">${[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"],["frz","FRZ"],["gift","Gift"]].map(([k,l])=>`<button class="${S.asub===k?"":"alt"}" data-s="${k}" style="flex:1;padding:10px 0;font-size:12px">${l}</button>`).join("")}</div>`;
-  if(S.asub==="clientes")h+=S.selc?detail():cl.map(c=>`<div class="card row"><div><b>${esc(c.name||"(sin nombre)")}</b> ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}<br>${N(c.balance)} FRZ · ${c.orders_count} pedidos</div></div><button data-v="${c.id}">Ver</button></div>`).join("")||`<p class="mu">Aún no hay clientes.</p>`;
+  if(S.asub==="clientes")h+=S.selc?detail():(cl.slice().sort((a,b)=>(a.verified?1:0)-(b.verified?1:0)).map(c=>`<div class="card row"><div><b>${esc(c.name||"(sin nombre)")}</b> ${!c.verified?'<span class="tag espera">SIN VERIFICAR</span>':""} ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}${c.phone?" · "+esc(c.phone):""}<br>${N(c.balance)} FRZ · ${c.orders_count} pedidos</div></div><button data-v="${c.id}">Ver</button></div>`).join("")||`<p class="mu">Aún no hay clientes.</p>`);
   if(S.asub==="recargas")h+=S.deps.length?S.deps.slice().sort((a,b)=>(a.status==="pendiente"?0:1)-(b.status==="pendiente"?0:1)).map(depCard).join(""):`<p class="mu">Sin recargas.</p>`;
   if(S.asub==="pedidos")h+=S.orders.length?S.orders.map(o=>`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${N(o.frz)} FRZ</b><span class="tag ${o.status}">${o.status}</span></div><div class="mu">ID: ${esc(o.ff_id)}<br>${esc(cm(o.user_id).name||"")} · ${esc(o.email)} · ${fmt(o.created_at)}</div>${o.status==="espera"?`<input data-m="${o.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-a="${o.id}">ACEPTAR</button><button class="no" data-r="${o.id}">RECHAZAR</button></div>`:""}</div>`).join(""):`<p class="mu">Sin pedidos.</p>`;
   if(S.asub==="frz")h+=`<div class="card"><div class="mu">Tu billetera</div><div class="big">∞ FRZ</div></div><h2>Enviar</h2><div class="card"><input id="aem" type="email" placeholder="Correo del cliente"><input id="aam" type="number" step="any" min="0.01" placeholder="Cantidad FRZ">${fe("send")}<button id="send" style="width:100%">Enviar</button></div><h2>Quitar FRZ</h2><div class="card"><input id="rem" type="email" placeholder="Correo del cliente"><input id="ram" type="number" step="any" min="0.01" placeholder="Cantidad FRZ a quitar">${fe("rmv")}<button class="no" id="rmv" style="width:100%">Quitar</button></div>`;
@@ -324,13 +337,22 @@ function admin(){
 }
 function detail(){
   const c=S.clients.find(x=>x.id===S.selc);if(!c)return"";
-  const os=S.orders.filter(o=>o.user_id===c.id);
-  return`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:10px"><b>${esc(c.name||"(sin nombre)")}</b> ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}</div><div class="big">${N(c.balance)} FRZ</div><div class="mu">${c.orders_count} pedidos</div>${fe("ban")}<button class="${c.banned?"ok":"no"}" data-ban="${c.id}" data-b="${c.banned?0:1}" style="width:100%;margin-top:10px">${c.banned?"Quitar baneo":"Banear cliente"}</button></div><h2>Enviar mensaje</h2><div class="card"><input id="nmsg" placeholder="Mensaje para el cliente">${fe("note")}<button id="nsend" data-u="${c.id}" style="width:100%">Enviar mensaje</button></div><h2>Pedidos del cliente</h2>`+(os.length?os.map(mini).join(""):`<p class="mu">Sin pedidos.</p>`);
+  const os=S.orders.filter(o=>o.user_id===c.id),t=S.tmp&&S.tmp.id===c.id?S.tmp:null;
+  return`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:10px"><b>${esc(c.name||"(sin nombre)")}</b> ${!c.verified?'<span class="tag espera">SIN VERIFICAR</span>':'<span class="tag aceptado">VERIFICADO</span>'} ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}<br>Tel: ${esc(c.phone||"-")}<br>Código de verificación: <b>${esc(c.vcode||"-")}</b></div><div class="big">${N(c.balance)} FRZ</div><div class="mu">${c.orders_count} pedidos</div>${fe("ban")}<button class="${c.verified?"alt":"ok"}" data-ver="${c.id}" data-vb="${c.verified?0:1}" style="width:100%;margin-top:10px">${c.verified?"Quitar verificación":"✅ Verificar cliente"}</button><button class="alt" data-rst="${c.id}" style="width:100%;margin-top:8px">🔑 Restablecer contraseña</button><button class="${c.banned?"ok":"no"}" data-ban="${c.id}" data-b="${c.banned?0:1}" style="width:100%;margin-top:8px">${c.banned?"Quitar baneo":"Banear cliente"}</button></div>${t?`<div class="card win"><div class="t" style="font-size:18px">Contraseña temporal</div><div class="code">${esc(t.pw)}</div><div class="mu">Solo se muestra ahora. Envíasela al cliente.</div><button class="cp" data-c="${esc(t.pw)}" style="margin-top:8px">Copiar</button>${c.phone?`<a class="abtn" target="_blank" rel="noopener noreferrer" href="https://wa.me/${esc(waNum(c.phone))}?text=${encodeURIComponent("Tu nueva contraseña temporal de FIRE Zone Recargas es: "+t.pw+" . Entra y cámbiala en Billetera.")}">Enviar por WhatsApp</a>`:""}</div>`:""}<h2>Enviar mensaje</h2><div class="card"><input id="nmsg" placeholder="Mensaje para el cliente">${fe("note")}<button id="nsend" data-u="${c.id}" style="width:100%">Enviar mensaje</button></div><h2>Pedidos del cliente</h2>`+(os.length?os.map(mini).join(""):`<p class="mu">Sin pedidos.</p>`);
 }
 function bind(){
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
   g("#out",()=>SB.auth.signOut());
+  g("#recheck",()=>load());
   g("#npush",()=>{try{Notification.requestPermission().then(()=>render())}catch(e){}});
+  g("#cpb",()=>{S.cp=!S.cp;S.f={};render()});
+  g("#cpsave",async()=>{
+    const v=$("#np").value;
+    if(v.length<6){setf("cp","La contraseña debe tener 6 o más caracteres.");return render()}
+    const {error}=await SB.auth.updateUser({password:v});
+    if(error)setf("cp",error.message);else{setf("cp","","✅ Contraseña cambiada.");S.cp=false;setf("wal","","✅ Contraseña cambiada.")}
+    render();
+  });
   /* Free Fire */
   g("#ffb",()=>{S.game=true;S.method=null;render()});
   g("#back",()=>{S.game=false;render()});
@@ -411,9 +433,19 @@ function bind(){
     setf("tog",error?clean(error.message):"");
     await loadSettings();render();
   });
-  document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{S.asub=b.dataset.s;S.selc=null;S.f={};render()});
-  document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.selc=b.dataset.v;S.f={};render()});
-  g("#cback",()=>{S.selc=null;S.f={};render()});
+  document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{S.asub=b.dataset.s;S.selc=null;S.tmp=null;S.f={};render()});
+  document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.selc=b.dataset.v;S.tmp=null;S.f={};render()});
+  g("#cback",()=>{S.selc=null;S.tmp=null;S.f={};render()});
+  document.querySelectorAll("[data-ver]").forEach(b=>b.onclick=async()=>{
+    const {error}=await SB.rpc("set_verified",{p_user:b.dataset.ver,p_ok:b.dataset.vb==="1"});
+    setf("ban",error?clean(error.message):"");await load();
+  });
+  document.querySelectorAll("[data-rst]").forEach(b=>b.onclick=async()=>{
+    if(!confirm("¿Restablecer la contraseña de este cliente? Se genera una temporal."))return;
+    const {data,error}=await SB.rpc("admin_reset_password",{p_user:b.dataset.rst});
+    if(error)setf("ban",clean(error.message));else{S.tmp={id:b.dataset.rst,pw:data};setf("ban")}
+    await load();
+  });
   g("#gcreate",async()=>{
     const am=parseFloat($("#gam").value),q=Math.floor(+$("#gqty").value||1),nt=$("#gnote").value.trim();
     S.f.gam=$("#gam").value;S.f.gqty=String(q);S.f.gnote=nt;
