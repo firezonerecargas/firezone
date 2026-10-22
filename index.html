@@ -66,32 +66,35 @@ const METHODS={
   banco:{icon:"🏦",name:"Transferencia bancaria",short:"Transfer.",unit:"CUP"},
   usdt:{icon:"💲",name:"USDT (BEP20)",short:"USDT",unit:"USDT"}
 };
-const OFFERS=[[110,1],[341,3],[572,5],[1166,10],[2398,20]];
-const BEST={0:"🔥 Más vendido"};
 const QUICK=[1,5,10,25,50];
 const FAQ=[
- ["¿Cómo recargo diamantes?","Entra a Ofertas → Free Fire y elige un método. Con Recarga Directa pagas con saldo, transferencia o USDT y recargamos tu ID. Con Por Créditos pagas con tus FRZ."],
+ ["¿Cómo recargo?","Entra a Ofertas, elige el juego y un método. Con Recarga Directa pagas con saldo, transferencia o USDT y recargamos tu ID. Con Por Créditos pagas con tus FRZ."],
  ["¿Cuánto tarda mi recarga o pedido?","Todo se revisa manualmente. Verás el estado en Pedidos o Billetera, pasa de En espera a En proceso y luego a Aceptado o Rechazado. Te avisamos en la pestaña Avisos."],
  ["¿Qué métodos de pago aceptan?","Saldo móvil, transferencia bancaria (tarjeta Bandec) y USDT por la red BEP20. Transfiere siempre el importe exacto que te muestra la web."],
  ["Puse mal mi ID, ¿qué hago?","Revisa bien tu ID antes de enviar. Si te equivocaste, escríbenos por WhatsApp lo antes posible."],
- ["¿Qué pasa si rechazan mi pedido?","Si pagaste con créditos, los FRZ vuelven automáticamente a tu billetera. Si pagaste una recarga o una recarga directa con dinero real y fue rechazada, escríbenos por WhatsApp."],
+ ["¿Qué pasa si rechazan mi pedido?","Si pagaste con créditos, los FRZ vuelven automáticamente a tu billetera. Si pagaste con dinero real y fue rechazado, escríbenos por WhatsApp."],
  ["¿Qué es el bono y los referidos?","Tu primer depósito de créditos recibe un 3% extra. Con Invita y gana, ganas el 5% de las recargas de créditos de las personas que entren con tu enlace."],
- ["¿Cómo funcionan las gift cards?","Una gift card vale lo mismo que el crédito FRZ. Puedes comprarla, y quien tenga el código lo canjea en Billetera → Gift Cards. Cada código se usa una sola vez."],
+ ["¿Cómo funcionan las gift cards?","Una gift card vale lo mismo que el crédito FRZ. Quien tenga el código lo canjea en Billetera → Gift Cards. Cada código se usa una sola vez."],
  ["¿Por qué tengo que verificar mi cuenta?","Para evitar cuentas falsas. Envías un mensaje por WhatsApp con tu código y te verificamos."],
  ["¿Cómo contacto con soporte?","Toca el botón verde de WhatsApp que está siempre en la esquina de la pantalla."]
 ];
-let P={rate_saldo:290,rate_banco:1160,rate_usdt:1,d_saldo:260,d_banco:910,d_usdt:0.85};
+let P={rate_saldo:290,rate_banco:1160,rate_usdt:1};
 const SB=supabase.createClient(SB_URL,SB_KEY);
 (function(){const q=new URLSearchParams(location.search).get("ref");if(q){try{localStorage.setItem("frz_ref",q.toLowerCase().slice(0,16))}catch(e){}}})();
 const getRef=()=>{try{return localStorage.getItem("frz_ref")||""}catch(e){return ""}};
-const S={sess:null,prof:null,open:true,mode:getRef()?"signup":"login",email:"",name:"",phone:"",tab:"ofertas",game:false,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],tr:[],cards:[],newCodes:[],proofs:{},bal:0,notes:[],seen:null,clients:[],adm:false,asub:"clientes",selc:null,tmp:null,cp:false,dep:null,gv:false,mov:false,faq:false,q:"",fs:"all",inv:false,f:{}};
+const S={sess:null,prof:null,open:true,games:[],offers:[],mode:getRef()?"signup":"login",email:"",name:"",phone:"",tab:"ofertas",game:null,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],tr:[],cards:[],newCodes:[],proofs:{},bal:0,notes:[],seen:null,clients:[],adm:false,asub:"clientes",selc:null,tmp:null,cp:false,rs:false,dep:null,gv:false,mov:false,faq:false,q:"",fs:"all",inv:false,f:{}};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("es");
 const clean=m=>(m||"").replace(/^.*?exception:?\s*/i,"");
 const N=x=>String(Math.round((+x||0)*100)/100);
-const rate=m=>+P["rate_"+m];
-const dpr=(m,i)=>Math.round(P["d_"+m]*OFFERS[i][1]*100)/100;
+const G=id=>S.games.find(g=>g.id===id)||{};
+const O=id=>S.offers.find(o=>o.id===id)||{};
+const offs=gid=>S.offers.filter(o=>o.game_id===gid&&o.active);
+const it=x=>x.item||((x.diamonds||0)+" Diamantes");
+const dp=(m,o)=>+o["direct_"+m]||0;
+const myR=()=>(S.prof&&S.prof.custom_rates)||{};
+const rate=m=>+(myR()[m]??P["rate_"+m]);
 const rtTxt=m=>"1 FRZ = "+N(rate(m))+" "+METHODS[m].unit;
 const pr=(m,f)=>m==="usdt"?Math.round(f*rate(m)*100)/100:Math.ceil(Math.round(f*rate(m)*100)/100);
 const ptxt=(m,p)=>N(p)+" "+METHODS[m].unit;
@@ -106,9 +109,10 @@ const stTxt=s=>({pendiente:"Pendiente",espera:"En espera",aceptado:"Aceptado",re
 const isProc=x=>x.processing&&(x.status==="pendiente"||x.status==="espera");
 const stCl=x=>isProc(x)?"proc":(x.status==="pendiente"||x.status==="espera")?"espera":x.status;
 const stTag=x=>`<span class="tag ${stCl(x)}">${isProc(x)?"En proceso":stTxt(x.status)}</span>`;
-const badge=i=>BEST[i]?` <span class="tag aceptado">${BEST[i]}</span>`:"";
 const isGift=()=>S.dep&&S.dep.kind==="gift";
-const resetNav=()=>{S.game=false;S.method=null;S.sel=null;S.dr=null;S.selc=null;S.tmp=null;S.cp=false;S.dep=null;S.gv=false;S.mov=false;S.faq=false;S.q="";S.fs="all";S.f={}};
+const isRes=()=>!!(S.prof&&(S.prof.is_reseller||S.prof.is_admin));
+const nv=v=>{const n=parseFloat(String(v).replace(",","."));return n>0?n:null};
+const resetNav=()=>{S.game=null;S.method=null;S.sel=null;S.dr=null;S.selc=null;S.tmp=null;S.cp=false;S.rs=false;S.dep=null;S.gv=false;S.mov=false;S.faq=false;S.q="";S.fs="all";S.f={}};
 const forgotUrl=()=>WA+"?text="+encodeURIComponent("Hola, olvidé mi contraseña de FIRE Zone Recargas. Mi correo es: "+(S.email||"(escribe tu correo aquí)"));
 
 async function copyTxt(t,btn){
@@ -154,6 +158,10 @@ async function pollNotes(){
 async function loadSettings(){
   try{const {data}=await SB.from("site_settings").select("value").eq("key","open").maybeSingle();S.open=!(data&&data.value==="false")}catch(e){S.open=true}
   try{const {data}=await SB.from("prices").select("key,value");if(data)data.forEach(r=>{P[r.key]=+r.value})}catch(e){}
+  try{
+    const g=await SB.from("games").select("*").order("sort").order("id");if(g.data)S.games=g.data;
+    const o=await SB.from("offers").select("*").order("sort").order("id");if(o.data)S.offers=o.data;
+  }catch(e){}
 }
 async function init(){
   const {data}=await SB.auth.getSession();S.sess=data.session;
@@ -174,7 +182,7 @@ async function load(){
       SB.rpc("my_balance"),
       SB.from("profiles").select("*").eq("id",S.sess.user.id).single(),
       SB.from("notifications").select("*").order("created_at",{ascending:false}),
-      SB.from("deposits").select("id,user_id,email,frz,bonus,phone,status,msg,kind,diamonds,ff_id,saldo,method,price,ref,processing,created_at").order("created_at",{ascending:false}),
+      SB.from("deposits").select("id,user_id,email,frz,bonus,phone,status,msg,kind,diamonds,ff_id,saldo,method,price,ref,processing,item,game,created_at").order("created_at",{ascending:false}),
       SB.from("gift_cards").select("*").order("created_at",{ascending:false}),
       SB.from("transfers").select("id,to_user,amount,created_at").order("created_at",{ascending:false})]);
     S.orders=o.data||[];S.bal=b.data||0;S.prof=p.data;S.notes=n.data||[];S.deps=d.data||[];S.cards=gc.data||[];S.tr=tr.data||[];
@@ -272,34 +280,39 @@ function checkPay(m,o,key){
 }
 /* ---------- ofertas ---------- */
 function ofertas(){
-  if(!S.game)return`<h2>Ofertas</h2><button class="ff" id="ffb">🔥 Free Fire</button><button class="alt" id="faqb" style="width:100%;margin-top:12px">📖 Reglas y preguntas frecuentes</button>`;
-  if(!S.method)return`<h2>Métodos de recarga</h2><div class="card"><b>⚡ Recarga Directa</b><div class="mu">Pagas con saldo, transferencia o USDT y recargamos directo a tu ID.</div><button id="mdir" style="width:100%;margin-top:8px">Recarga Directa</button></div><div class="card"><b>💳 Por Créditos</b><div class="mu">Pagas con tus créditos FRZ.</div><button id="mcre" style="width:100%;margin-top:8px">Por Créditos</button></div><button class="alt" id="back">← Volver</button>`;
+  if(!S.game){
+    const gs=S.games.filter(g=>g.active);
+    return`<h2>Ofertas</h2>${gs.map(g=>`<button class="ff" data-g="${g.id}" style="margin-bottom:10px">${esc(g.icon||"🎮")} ${esc(g.name)}</button>`).join("")||'<p class="mu">Aún no hay juegos disponibles.</p>'}<button class="alt" id="faqb" style="width:100%;margin-top:12px">📖 Reglas y preguntas frecuentes</button>`;
+  }
+  const gm=G(S.game);
+  if(!S.method)return`<h2>${esc(gm.icon||"")} ${esc(gm.name||"")}</h2><div class="card"><b>⚡ Recarga Directa</b><div class="mu">Pagas con saldo, transferencia o USDT y recargamos directo a tu cuenta.</div><button id="mdir" style="width:100%;margin-top:8px">Recarga Directa</button></div><div class="card"><b>💳 Por Créditos</b><div class="mu">Pagas con tus créditos FRZ.</div><button id="mcre" style="width:100%;margin-top:8px">Por Créditos</button></div><button class="alt" id="back">← Volver</button>`;
   if(S.method==="directo")return directo();
-  if(S.sel==null)return`<h2>Por Créditos</h2>${OFFERS.map(([d,f],i)=>`<div class="card row"><div><b>${d} Diamantes</b>${badge(i)}<div class="mu">${f} FRZ</div></div><button data-o="${i}">Comprar</button></div>`).join("")}<button class="alt" id="backm">← Métodos</button>`;
-  const [d,f]=OFFERS[S.sel];
-  return`<h2>${d} Diamantes · ${f} FRZ</h2><div class="card"><label>Coloca tu ID</label><input id="ffid" inputmode="numeric" placeholder="ID de Free Fire">${fe("pay")}<button id="pay" style="width:100%">Pagar</button></div><button class="alt" id="back2">← Volver</button>`;
+  const os=offs(S.game);
+  if(S.sel==null)return`<h2>Por Créditos</h2>${os.map(o=>`<div class="card row"><div><b>${esc(o.label)}</b><div class="mu">${o.frz>0?N(o.frz)+" FRZ":"No disponible con créditos"}</div></div><button data-o="${o.id}" ${o.frz>0?"":"disabled"}>Comprar</button></div>`).join("")||'<p class="mu">Aún no hay ofertas.</p>'}<button class="alt" id="backm">← Métodos</button>`;
+  const o=O(S.sel);
+  return`<h2>${esc(o.label)} · ${N(o.frz)} FRZ</h2><div class="card"><label>Coloca tu ${esc(gm.id_label||"ID")}</label><input id="ffid" placeholder="${esc(gm.id_label||"ID")}">${fe("pay")}<button id="pay" style="width:100%">Pagar</button></div><button class="alt" id="back2">← Volver</button>`;
 }
 function faqView(){
   return`<button class="alt" id="faqback">← Volver</button><h2>Reglas y preguntas frecuentes</h2>`+FAQ.map(([q,a])=>`<div class="card"><b>${esc(q)}</b><div class="mu" style="margin-top:6px;font-size:15px">${esc(a)}</div></div>`).join("")+`<a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">¿Más dudas? WhatsApp</a>`;
 }
 function directo(){
-  const r=S.dr,m=S.dm;
-  if(!r)return`<h2>Recarga Directa</h2><div class="mu" style="margin-bottom:6px">Método de pago</div>${methRow(m,"data-dm",false)}<div style="height:10px"></div>${OFFERS.map(([d],i)=>`<div class="card row"><div><b>${d} Diamantes</b>${badge(i)}<div class="mu">${ptxt(m,dpr(m,i))}</div></div><button data-dsel="${i}">Recargar</button></div>`).join("")}<button class="alt" id="backm">← Métodos</button>`;
-  const d=OFFERS[r.sel][0],price=dpr(m,r.sel);
-  if(r.step===1)return`<h2>${d} Diamantes · ${ptxt(m,price)}</h2><div class="card"><label>Coloca tu ID</label><input id="drid" inputmode="numeric" placeholder="ID de Free Fire" value="${esc(r.ff)}">${fe("dr")}<button id="drnext" style="width:100%">Continuar ›</button></div><button class="alt" id="drback">← Volver</button>`;
-  return`<h2>Recarga Directa</h2><div class="card row"><div><b>${d} Diamantes</b><div class="mu">ID: ${esc(r.ff)}</div></div><button class="cp" id="dredit">✏️ Editar</button></div>${payCard(m,price)}${identCard(m,r,"dr")}${proofCard(r,"dr")}${fe("dr")}<button id="drsend" style="width:100%" ${r.busy?"disabled":""}>Ya transferí · Enviar a revisión ›</button>`;
+  const r=S.dr,m=S.dm,gm=G(S.game);
+  if(!r)return`<h2>Recarga Directa</h2><div class="mu" style="margin-bottom:6px">Método de pago</div>${methRow(m,"data-dm",false)}<div style="height:10px"></div>${offs(S.game).map(o=>{const p=dp(m,o);return`<div class="card row"><div><b>${esc(o.label)}</b><div class="mu">${p>0?ptxt(m,p):"No disponible con este método"}</div></div><button data-dsel="${o.id}" ${p>0?"":"disabled"}>Recargar</button></div>`}).join("")||'<p class="mu">Aún no hay ofertas.</p>'}<button class="alt" id="backm">← Métodos</button>`;
+  const o=O(r.sel),price=dp(m,o);
+  if(r.step===1)return`<h2>${esc(o.label)} · ${ptxt(m,price)}</h2><div class="card"><label>Coloca tu ${esc(gm.id_label||"ID")}</label><input id="drid" placeholder="${esc(gm.id_label||"ID")}" value="${esc(r.ff)}">${fe("dr")}<button id="drnext" style="width:100%">Continuar ›</button></div><button class="alt" id="drback">← Volver</button>`;
+  return`<h2>Recarga Directa</h2><div class="card row"><div><b>${esc(o.label)}</b><div class="mu">${esc(gm.id_label||"ID")}: ${esc(r.ff)}</div></div><button class="cp" id="dredit">✏️ Editar</button></div>${payCard(m,price)}${identCard(m,r,"dr")}${proofCard(r,"dr")}${fe("dr")}<button id="drsend" style="width:100%" ${r.busy?"disabled":""}>Ya transferí · Enviar a revisión ›</button>`;
 }
 function bigOrder(o){
-  const info=`<p><b>Oferta:</b> ${o.diamonds} Diamantes</p><p><b>ID:</b> ${esc(o.ff_id)}</p>`;
+  const info=`<p><b>Oferta:</b> ${esc(it(o))}${o.game?" · "+esc(o.game):""}</p><p><b>ID:</b> ${esc(o.ff_id)}</p>`;
   if(o.status==="aceptado")return`<div class="card win"><div class="t">¡SU COMPRA SE HA REALIZADO CON ÉXITO!</div>${info}<p><b>Crédito descontado:</b> ${N(o.frz)} FRZ</p><div class="mu">${fmt(o.created_at)}</div></div>`;
   if(o.status==="rechazado")return`<div class="card lose"><div class="t">RECHAZADO</div>${info}<p><b>Mensaje:</b> ${esc(o.msg||"Sin mensaje")}</p><p>Te devolvimos ${N(o.frz)} FRZ.</p><div class="mu">${fmt(o.created_at)}</div></div>`;
-  return`<div class="card"><div class="row"><b>${o.diamonds} Diamantes</b>${stTag(o)}</div><div class="mu">ID: ${esc(o.ff_id)} · ${N(o.frz)} FRZ<br>${fmt(o.created_at)}</div></div>`;
+  return`<div class="card"><div class="row"><b>${esc(it(o))}</b>${stTag(o)}</div><div class="mu">${o.game?esc(o.game)+" · ":""}ID: ${esc(o.ff_id)} · ${N(o.frz)} FRZ<br>${fmt(o.created_at)}</div></div>`;
 }
 function bigDirect(x){
-  const info=`<p><b>Oferta:</b> ${x.diamonds} Diamantes (Recarga Directa)</p><p><b>ID:</b> ${esc(x.ff_id)}</p>`;
+  const info=`<p><b>Oferta:</b> ${esc(it(x))}${x.game?" · "+esc(x.game):""} (Recarga Directa)</p><p><b>ID:</b> ${esc(x.ff_id)}</p>`;
   if(x.status==="aceptado")return`<div class="card win"><div class="t">¡SU COMPRA SE HA REALIZADO CON ÉXITO!</div>${info}<p><b>Pagado:</b> ${px(x)}</p><div class="mu">${fmt(x.created_at)}</div></div>`;
   if(x.status==="rechazado")return`<div class="card lose"><div class="t">RECHAZADO</div>${info}<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p><p class="mu">Si ya pagaste, escribe por WhatsApp.</p><div class="mu">${fmt(x.created_at)}</div></div>`;
-  return`<div class="card"><div class="row"><b>${x.diamonds} Diamantes · Directa</b>${stTag(x)}</div><div class="mu">ID: ${esc(x.ff_id)} · ${px(x)}<br>${fmt(x.created_at)}</div></div>`;
+  return`<div class="card"><div class="row"><b>${esc(it(x))} · Directa</b>${stTag(x)}</div><div class="mu">${x.game?esc(x.game)+" · ":""}ID: ${esc(x.ff_id)} · ${px(x)}<br>${fmt(x.created_at)}</div></div>`;
 }
 function pedidos(){
   const uid=S.sess.user.id;
@@ -309,16 +322,17 @@ function pedidos(){
 function billetera(){
   const p=S.prof||{},mine=S.deps.filter(x=>x.user_id===S.sess.user.id&&x.kind==="credito");
   const link=location.origin+location.pathname+"?ref="+(p.ref_code||"");
-  let h=`<h2>Billetera</h2><div class="card"><div class="mu">Cuenta</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}${p.phone?" · "+esc(p.phone):""}</div><div class="mu" style="margin-top:10px">Saldo</div><div class="big">${N(S.bal)} FRZ</div>${fe("wal")}<button id="addc" style="width:100%;margin-top:10px">➕ Añadir créditos</button><button class="alt" id="movb" style="width:100%;margin-top:8px">📜 Movimientos</button><button class="alt" id="gifts" style="width:100%;margin-top:8px">🎟 Gift Cards</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana</button><button class="alt" id="cpb" style="width:100%;margin-top:8px">🔑 Cambiar contraseña</button></div>`;
+  let h=`<h2>Billetera</h2><div class="card"><div class="mu">Cuenta ${p.is_reseller?'<span class="tag aceptado">REVENDEDOR</span>':""}</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}${p.phone?" · "+esc(p.phone):""}</div><div class="mu" style="margin-top:10px">Saldo</div><div class="big">${N(S.bal)} FRZ</div>${fe("wal")}<button id="addc" style="width:100%;margin-top:10px">➕ Añadir créditos</button>${isRes()?`<button class="alt" id="rsb" style="width:100%;margin-top:8px">📤 Transferir créditos</button>`:""}<button class="alt" id="movb" style="width:100%;margin-top:8px">📜 Movimientos</button><button class="alt" id="gifts" style="width:100%;margin-top:8px">🎟 Gift Cards</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana</button><button class="alt" id="cpb" style="width:100%;margin-top:8px">🔑 Cambiar contraseña</button></div>`;
+  if(S.rs&&isRes())h+=`<div class="card"><b>📤 Transferir créditos</b><div class="mu">Envía FRZ de tu saldo a otro usuario registrado.</div><input id="rse" type="email" placeholder="Correo del usuario"><input id="rsa" type="number" step="any" min="0.01" placeholder="Cantidad FRZ">${fe("rs")}<button id="rssend" style="width:100%">Transferir</button></div>`;
   if(S.cp)h+=`<div class="card"><b>Cambiar contraseña</b><input id="np" type="password" placeholder="Nueva contraseña (mínimo 6)">${fe("cp")}<button id="cpsave" style="width:100%">Guardar contraseña</button></div>`;
-  if(S.inv)h+=`<div class="card"><b>Invita y gana 5%</b><p class="mu">Comparte tu enlace. Cuando alguien que entre con él recargue créditos, tú ganas el 5% de esa recarga.</p><input readonly value="${esc(link)}" id="rlink"><div class="row"><button class="cp" id="rcopy" data-c="${esc(link)}">Copiar enlace</button><a class="abtn" style="margin:0" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text=${encodeURIComponent("Recarga Free Fire en FIRE Zone: "+link)}">WhatsApp</a></div></div>`;
+  if(S.inv)h+=`<div class="card"><b>Invita y gana 5%</b><p class="mu">Comparte tu enlace. Cuando alguien que entre con él recargue créditos, tú ganas el 5% de esa recarga.</p><input readonly value="${esc(link)}" id="rlink"><div class="row"><button class="cp" id="rcopy" data-c="${esc(link)}">Copiar enlace</button><a class="abtn" style="margin:0" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text=${encodeURIComponent("Recarga en FIRE Zone: "+link)}">WhatsApp</a></div></div>`;
   h+=`<h2>Mis recargas</h2>`+(mine.length?mine.map(x=>`<div class="card"><div class="row"><b>${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}</b>${stTag(x)}</div><div class="mu">${px(x)} · ${fmt(x.created_at)}</div>${x.status==="rechazado"?`<p><b>Mensaje:</b> ${esc(x.msg||"Sin mensaje")}</p>`:""}</div>`).join(""):`<p class="mu">Aún no tienes recargas.</p>`);
   return h+`<a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">¿Necesitas ayuda? WhatsApp</a>`;
 }
 function movView(){
   const uid=S.sess.user.id;
-  const t=S.tr.filter(x=>x.to_user===uid).map(x=>({d:x.created_at,a:+x.amount,l:+x.amount>0?"Crédito recibido":"Descuento"}));
-  const o=S.orders.filter(x=>x.user_id===uid).map(x=>({d:x.created_at,a:x.status==="rechazado"?0:-x.frz,l:`Pedido de ${x.diamonds} diamantes`+(x.status==="rechazado"?" (rechazado, devuelto)":"")}));
+  const t=S.tr.filter(x=>x.to_user===uid).map(x=>({d:x.created_at,a:+x.amount,l:+x.amount>0?"Crédito recibido":"Descuento / envío"}));
+  const o=S.orders.filter(x=>x.user_id===uid).map(x=>({d:x.created_at,a:x.status==="rechazado"?0:-x.frz,l:`Pedido: ${it(x)}`+(x.status==="rechazado"?" (rechazado, devuelto)":"")}));
   const all=[...t,...o].sort((a,b)=>new Date(b.d)-new Date(a.d));
   return`<button class="alt" id="mback">← Billetera</button><h2>Movimientos</h2><div class="card hero"><div class="mu">Saldo actual</div><div class="big">${N(S.bal)} FRZ</div></div>`+(all.length?all.map(x=>`<div class="card row"><div><b>${esc(x.l)}</b><div class="mu">${fmt(x.d)}</div></div><b style="color:${x.a<0?"var(--no)":x.a>0?"var(--ok)":"var(--mu)"}">${x.a>0?"+":""}${N(x.a)} FRZ</b></div>`).join(""):`<p class="mu">Aún no tienes movimientos.</p>`);
 }
@@ -344,15 +358,15 @@ function avisos(){
   return`<h2>Notificaciones</h2>${can?`<button class="alt" id="npush" style="width:100%;margin-bottom:10px">🔔 Activar avisos del navegador</button>`:""}<p class="mu">Se revisan cada 10 segundos mientras la web esté abierta.</p>`+noteCards(myNotes());
 }
 /* ---------- admin ---------- */
-function mini(o){return`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${N(o.frz)} FRZ</b>${stTag(o)}</div><div class="mu">ID: ${esc(o.ff_id)} · ${fmt(o.created_at)}</div></div>`}
+function mini(o){return`<div class="card"><div class="row"><b>${esc(it(o))} · ${N(o.frz)} FRZ</b>${stTag(o)}</div><div class="mu">ID: ${esc(o.ff_id)} · ${fmt(o.created_at)}</div></div>`}
 function depCard(x){
   const c=cm(x.user_id),pf=S.proofs[x.id],dir=x.kind==="directo";
-  const title=dir?`⚡ Directa · ${x.diamonds} diamantes · ID ${esc(x.ff_id)}`:`${x.kind==="gift"?"🎟 Gift card · ":""}${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}`;
+  const title=dir?`⚡ ${esc(x.game||"")} · ${esc(it(x))} · ID ${esc(x.ff_id)}`:`${x.kind==="gift"?"🎟 Gift card · ":""}${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}`;
   const who=x.phone?`Tel: +53 ${esc(x.phone)}`:`TXID: ${esc(x.ref||"-")}`;
   return`<div class="card"><div class="row"><b>${title}</b>${stTag(x)}</div><div class="mu">${esc(c.name||"")} · ${esc(x.email)}<br>${METHODS[mOf(x)].icon} ${METHODS[mOf(x)].name} · ${px(x)}<br>${who}<br>${fmt(x.created_at)}</div>${pf?`<img src="${pf}" style="max-width:100%;border-radius:10px;margin-top:8px">`:`<button class="alt" data-pf="${x.id}" style="margin-top:8px">Ver captura</button>`}${x.status==="pendiente"?`${!x.processing?`<button class="alt" data-pro="deposito:${x.id}" style="width:100%;margin-top:8px">🔵 Marcar en proceso</button>`:""}<input data-dm2="${x.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-da="${x.id}">ACEPTAR</button><button class="no" data-dr2="${x.id}">RECHAZAR</button></div>`:""}</div>`;
 }
 function ordCard(o){
-  return`<div class="card"><div class="row"><b>${o.diamonds} Diamantes · ${N(o.frz)} FRZ</b>${stTag(o)}</div><div class="mu">ID: ${esc(o.ff_id)}<br>${esc(cm(o.user_id).name||"")} · ${esc(o.email)} · ${fmt(o.created_at)}</div>${o.status==="espera"?`${!o.processing?`<button class="alt" data-pro="orden:${o.id}" style="width:100%;margin-top:8px">🔵 Marcar en proceso</button>`:""}<input data-m="${o.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-a="${o.id}">ACEPTAR</button><button class="no" data-r="${o.id}">RECHAZAR</button></div>`:""}</div>`;
+  return`<div class="card"><div class="row"><b>${esc(it(o))} · ${N(o.frz)} FRZ</b>${stTag(o)}</div><div class="mu">${o.game?esc(o.game)+" · ":""}ID: ${esc(o.ff_id)}<br>${esc(cm(o.user_id).name||"")} · ${esc(o.email)} · ${fmt(o.created_at)}</div>${o.status==="espera"?`${!o.processing?`<button class="alt" data-pro="orden:${o.id}" style="width:100%;margin-top:8px">🔵 Marcar en proceso</button>`:""}<input data-m="${o.id}" placeholder="Mensaje si rechazas"><div class="row"><button class="ok" data-a="${o.id}">ACEPTAR</button><button class="no" data-r="${o.id}">RECHAZAR</button></div>`:""}</div>`;
 }
 function cardAdmin(x){
   const own=cm(x.owner_id),red=cm(x.redeemed_by);
@@ -363,43 +377,59 @@ const stOk=x=>S.fs==="all"||(S.fs==="pend"&&(x.status==="pendiente"||x.status===
 function fbar(st){
   return`<input id="aq" placeholder="🔍 Buscar..." value="${esc(S.q)}">`+(st?`<div class="row" style="gap:4px;margin:6px 0">${[["all","Todos"],["pend","Pendientes"],["ok","Aceptados"],["no","Rechazados"]].map(([k,l])=>`<button class="${S.fs===k?"":"alt"}" data-fs="${k}" style="flex:1;padding:8px 0;font-size:12px">${l}</button>`).join("")}</div>`:"");
 }
+function tags(c){return`${c.admin?'<span class="tag proc">ADMIN</span> ':""}${c.reseller?'<span class="tag aceptado">REVENDEDOR</span> ':""}${!c.verified?'<span class="tag espera">SIN VERIFICAR</span> ':""}${c.banned?'<span class="tag rechazado">BANEADO</span>':""}`}
 function adminList(){
   if(S.asub==="clientes"){
-    const cl=S.clients.filter(c=>!c.admin&&qOk([c.name,c.email,c.phone].join(" "))).sort((a,b)=>(a.verified?1:0)-(b.verified?1:0));
-    return cl.map(c=>`<div class="card row"><div><b>${esc(c.name||"(sin nombre)")}</b> ${!c.verified?'<span class="tag espera">SIN VERIFICAR</span>':""} ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}${c.phone?" · "+esc(c.phone):""}<br>${N(c.balance)} FRZ · ${c.orders_count} pedidos</div></div><button data-v="${c.id}">Ver</button></div>`).join("")||`<p class="mu">Sin resultados.</p>`;
+    const cl=S.clients.filter(c=>c.id!==S.sess.user.id&&qOk([c.name,c.email,c.phone].join(" "))).sort((a,b)=>(a.verified?1:0)-(b.verified?1:0));
+    return cl.map(c=>`<div class="card row"><div><b>${esc(c.name||"(sin nombre)")}</b> ${tags(c)}<div class="mu">${esc(c.email)}${c.phone?" · "+esc(c.phone):""}<br>${N(c.balance)} FRZ · ${c.orders_count} pedidos</div></div><button data-v="${c.id}">Ver</button></div>`).join("")||`<p class="mu">Sin resultados.</p>`;
   }
   if(S.asub==="recargas"){
-    const l=S.deps.filter(x=>stOk(x)&&qOk([cm(x.user_id).name,x.email,x.phone,x.ff_id,x.ref,x.diamonds,x.frz].join(" "))).sort((a,b)=>(a.status==="pendiente"?0:1)-(b.status==="pendiente"?0:1));
+    const l=S.deps.filter(x=>stOk(x)&&qOk([cm(x.user_id).name,x.email,x.phone,x.ff_id,x.ref,x.item,x.game,x.frz].join(" "))).sort((a,b)=>(a.status==="pendiente"?0:1)-(b.status==="pendiente"?0:1));
     return l.map(depCard).join("")||`<p class="mu">Sin resultados.</p>`;
   }
-  const l=S.orders.filter(x=>stOk(x)&&qOk([cm(x.user_id).name,x.email,x.ff_id,x.diamonds].join(" ")));
+  const l=S.orders.filter(x=>stOk(x)&&qOk([cm(x.user_id).name,x.email,x.ff_id,x.item,x.game].join(" ")));
   return l.map(ordCard).join("")||`<p class="mu">Sin resultados.</p>`;
 }
 function ventas(){
   const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()),d7=new Date(now-7*864e5),d30=new Date(now.getFullYear(),now.getMonth(),1);
   const acc=S.deps.filter(x=>x.status==="aceptado"),ords=S.orders.filter(o=>o.status==="aceptado");
-  const per=[["Hoy",d0],["Últimos 7 días",d7],["Este mes",d30]];
-  return`<div class="card bonus"><div class="mu">Se cuenta por la fecha en que el cliente envió el pago o el pedido. Solo recargas y pedidos aceptados.</div></div>`+per.map(([t,d])=>{
+  return`<div class="card bonus"><div class="mu">Se cuenta por la fecha en que el cliente envió el pago o el pedido. Solo pagos y pedidos aceptados.</div></div>`+[["Hoy",d0],["Últimos 7 días",d7],["Este mes",d30]].map(([t,d])=>{
     const a=acc.filter(x=>new Date(x.created_at)>=d),o=ords.filter(x=>new Date(x.created_at)>=d);
     const sum=m=>a.filter(x=>mOf(x)===m).reduce((s,x)=>s+priceOf(x),0);
-    const dia=a.filter(x=>x.kind==="directo").reduce((s,x)=>s+(x.diamonds||0),0)+o.reduce((s,x)=>s+x.diamonds,0);
-    const frzS=a.filter(x=>x.kind==="credito").reduce((s,x)=>s+(+x.frz||0),0);
-    return`<div class="card"><b>${t}</b><div class="row"><span class="mu">📱 Saldo</span><b>${N(sum("saldo"))} saldo</b></div><div class="row"><span class="mu">🏦 Transferencia</span><b>${N(sum("banco"))} CUP</b></div><div class="row"><span class="mu">💲 USDT</span><b>${N(sum("usdt"))} USDT</b></div><hr><div class="row"><span class="mu">Diamantes entregados</span><b>${dia}</b></div><div class="row"><span class="mu">Créditos recargados</span><b>${N(frzS)} FRZ</b></div><div class="row"><span class="mu">Pagos aceptados</span><b>${a.length}</b></div></div>`;
+    return`<div class="card"><b>${t}</b><div class="row"><span class="mu">📱 Saldo</span><b>${N(sum("saldo"))} saldo</b></div><div class="row"><span class="mu">🏦 Transferencia</span><b>${N(sum("banco"))} CUP</b></div><div class="row"><span class="mu">💲 USDT</span><b>${N(sum("usdt"))} USDT</b></div><hr><div class="row"><span class="mu">Recargas directas entregadas</span><b>${a.filter(x=>x.kind==="directo").length}</b></div><div class="row"><span class="mu">Pedidos por créditos</span><b>${o.length}</b></div><div class="row"><span class="mu">Créditos recargados</span><b>${N(a.filter(x=>x.kind==="credito").reduce((s,x)=>s+(+x.frz||0),0))} FRZ</b></div></div>`;
   }).join("");
 }
+function topv(){
+  const r=S.clients.filter(c=>c.reseller||+c.sold>0).sort((a,b)=>b.sold-a.sold);
+  return`<div class="card bonus"><div class="mu">Ranking por FRZ que cada revendedor ha transferido a otros usuarios desde la web.</div></div>`+(r.length?r.map((c,i)=>`<div class="card row"><div><b>${i+1}. ${esc(c.name||c.email)}</b> ${c.reseller?'<span class="tag aceptado">REVENDEDOR</span>':""}<div class="mu">${esc(c.email)}</div></div><b>${N(c.sold)} FRZ</b></div>`).join(""):`<p class="mu">Aún no hay ventas de revendedores.</p>`);
+}
 function precios(){
-  const rows=[["rate_saldo","Crédito: 1 FRZ en saldo"],["rate_banco","Crédito: 1 FRZ en CUP"],["rate_usdt","Crédito: 1 FRZ en USDT"],["d_saldo","Recarga directa 110 diamantes en saldo"],["d_banco","Recarga directa 110 diamantes en CUP"],["d_usdt","Recarga directa 110 diamantes en USDT"]];
-  return`<div class="card bonus"><div class="mu">Las demás ofertas de Recarga Directa se calculan multiplicando el precio de 110 diamantes por 3, 5, 10 y 20.</div></div>`+rows.map(([k,l])=>`<label class="mu">${l}</label><input data-pk="${k}" type="number" step="any" min="0.01" value="${P[k]}">`).join("")+fe("price")+`<button id="psave" style="width:100%;margin-top:8px">Guardar precios</button>`;
+  const rows=[["rate_saldo","1 FRZ en saldo"],["rate_banco","1 FRZ en CUP"],["rate_usdt","1 FRZ en USDT"]];
+  return`<div class="card bonus"><div class="mu">Precio del crédito para todos. Los precios de Recarga Directa se editan en cada oferta, en la pestaña Juegos. Un revendedor puede tener precios propios en su ficha.</div></div>`+rows.map(([k,l])=>`<label class="mu">${l}</label><input data-pk="${k}" type="number" step="any" min="0.01" value="${P[k]}">`).join("")+fe("price")+`<button id="psave" style="width:100%;margin-top:8px">Guardar precios</button>`;
+}
+function juegos(){
+  let h=`<div class="card"><b>➕ Nuevo juego</b><input id="gn" placeholder="Nombre del juego" maxlength="40"><input id="gi" placeholder="Emoji (ej.: 🎮)" maxlength="4"><input id="gl" placeholder="Qué pide el cliente (ej.: ID de jugador)" maxlength="40"><button id="gadd" style="width:100%">Agregar juego</button></div>${fe("gm")}`;
+  S.games.forEach(g=>{
+    h+=`<div class="card"><div class="row"><b>${esc(g.icon)} ${esc(g.name)}</b>${g.active?'<span class="tag aceptado">ACTIVO</span>':'<span class="tag rechazado">OCULTO</span>'}</div><input data-gf="${g.id}:name" value="${esc(g.name)}" placeholder="Nombre"><input data-gf="${g.id}:icon" value="${esc(g.icon)}" placeholder="Emoji"><input data-gf="${g.id}:id_label" value="${esc(g.id_label)}" placeholder="Qué pide el cliente"><div class="row"><button class="alt" data-gsave="${g.id}">Guardar</button><button class="alt" data-gtog="${g.id}">${g.active?"Ocultar":"Mostrar"}</button><button class="no" data-gdel="${g.id}">Borrar</button></div>`;
+    S.offers.filter(o=>o.game_id===g.id).forEach(o=>{
+      const f=(k,p)=>`<input data-of="${o.id}:${k}" type="number" step="any" min="0" placeholder="${p}" value="${o[k]??""}">`;
+      h+=`<hr><div class="row"><b>Oferta</b>${o.active?'<span class="tag aceptado">ACTIVA</span>':'<span class="tag rechazado">OCULTA</span>'}</div><input data-of="${o.id}:label" value="${esc(o.label)}" placeholder="Nombre (ej.: 110 Diamantes)"><div class="row" style="gap:6px">${f("frz","FRZ")}${f("direct_saldo","Saldo")}</div><div class="row" style="gap:6px">${f("direct_banco","CUP")}${f("direct_usdt","USDT")}</div><div class="row"><button class="alt" data-osave="${o.id}">Guardar</button><button class="alt" data-otog="${o.id}">${o.active?"Ocultar":"Mostrar"}</button><button class="no" data-odel="${o.id}">Borrar</button></div>`;
+    });
+    h+=`<hr><b>➕ Nueva oferta</b><input id="nl${g.id}" placeholder="Nombre de la oferta" maxlength="60"><div class="row" style="gap:6px"><input id="nf${g.id}" type="number" step="any" placeholder="FRZ"><input id="ns${g.id}" type="number" step="any" placeholder="Saldo"></div><div class="row" style="gap:6px"><input id="nb${g.id}" type="number" step="any" placeholder="CUP"><input id="nu${g.id}" type="number" step="any" placeholder="USDT"></div><div class="mu">Deja vacío el precio de un método para que no esté disponible.</div><button data-oadd="${g.id}" style="width:100%;margin-top:6px">Agregar oferta</button></div>`;
+  });
+  return h;
 }
 function admin(){
   if(!S.adm)return`<h2>Administración</h2><div class="card"><label>Contraseña de administrador</label><input id="apw" type="password" placeholder="Contraseña">${fe("gate")}<button id="unlock" style="width:100%">Entrar</button></div>`;
-  const cl=S.clients.filter(c=>!c.admin),w=S.orders.filter(o=>o.status==="espera"),dp=S.deps.filter(x=>x.status==="pendiente"),nv=cl.filter(c=>!c.verified).length;
-  let h=`<div class="card ${S.open?"":"lose"}"><div class="row"><div><b>Estado de la web</b><div class="mu">${S.open?"🟢 Encendida: los clientes pueden usarla":"🔴 Apagada: solo tú puedes entrar"}</div></div><button class="${S.open?"no":"ok"}" id="tog">${S.open?"Apagar web":"Encender web"}</button></div>${fe("tog")}</div>`;
-  h+=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big" style="font-size:26px">${cl.length}</div></div><div><div class="mu">Sin verificar</div><div class="big" style="font-size:26px">${nv}</div></div><div><div class="mu">Pedidos</div><div class="big" style="font-size:26px">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big" style="font-size:26px">${dp.length}</div></div></div>${fe("adm")}`;
-  h+=`<div class="row" style="gap:4px;margin-bottom:10px;flex-wrap:wrap">${[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"],["ventas","Ventas"],["precios","Precios"],["frz","FRZ"],["gift","Gift"]].map(([k,l])=>`<button class="${S.asub===k?"":"alt"}" data-s="${k}" style="flex:1 1 22%;padding:10px 0;font-size:12px">${l}</button>`).join("")}</div>`;
+  const cl=S.clients.filter(c=>!c.admin),w=S.orders.filter(o=>o.status==="espera"),dpn=S.deps.filter(x=>x.status==="pendiente"),nvf=cl.filter(c=>!c.verified).length;
+  let h=`<div class="card ${S.open?"":"lose"}"><div class="row"><div><b>Estado de la web</b><div class="mu">${S.open?"🟢 Encendida: los clientes pueden usarla":"🔴 Apagada: solo los administradores pueden entrar"}</div></div><button class="${S.open?"no":"ok"}" id="tog">${S.open?"Apagar web":"Encender web"}</button></div>${fe("tog")}</div>`;
+  h+=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big" style="font-size:26px">${cl.length}</div></div><div><div class="mu">Sin verificar</div><div class="big" style="font-size:26px">${nvf}</div></div><div><div class="mu">Pedidos</div><div class="big" style="font-size:26px">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big" style="font-size:26px">${dpn.length}</div></div></div>${fe("adm")}`;
+  h+=`<div class="row" style="gap:4px;margin-bottom:10px;flex-wrap:wrap">${[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"],["ventas","Ventas"],["top","Top"],["juegos","Juegos"],["precios","Precios"],["frz","FRZ"],["gift","Gift"]].map(([k,l])=>`<button class="${S.asub===k?"":"alt"}" data-s="${k}" style="flex:1 1 18%;padding:10px 0;font-size:12px">${l}</button>`).join("")}</div>`;
   if(S.asub==="clientes")h+=S.selc?detail():fbar(false)+`<div id="alist">${adminList()}</div>`;
   if(S.asub==="recargas"||S.asub==="pedidos")h+=fbar(true)+`<div id="alist">${adminList()}</div>`;
   if(S.asub==="ventas")h+=ventas();
+  if(S.asub==="top")h+=topv();
+  if(S.asub==="juegos")h+=juegos();
   if(S.asub==="precios")h+=precios();
   if(S.asub==="frz")h+=`<div class="card"><div class="mu">Tu billetera</div><div class="big">∞ FRZ</div></div><h2>Enviar</h2><div class="card"><input id="aem" type="email" placeholder="Correo del cliente"><input id="aam" type="number" step="any" min="0.01" placeholder="Cantidad FRZ">${fe("send")}<button id="send" style="width:100%">Enviar</button></div><h2>Quitar FRZ</h2><div class="card"><input id="rem" type="email" placeholder="Correo del cliente"><input id="ram" type="number" step="any" min="0.01" placeholder="Cantidad FRZ a quitar">${fe("rmv")}<button class="no" id="rmv" style="width:100%">Quitar</button></div>`;
   if(S.asub==="gift"){
@@ -411,11 +441,14 @@ function admin(){
 }
 function detail(){
   const c=S.clients.find(x=>x.id===S.selc);if(!c)return"";
-  const os=S.orders.filter(o=>o.user_id===c.id),t=S.tmp&&S.tmp.id===c.id?S.tmp:null;
-  return`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:10px"><b>${esc(c.name||"(sin nombre)")}</b> ${!c.verified?'<span class="tag espera">SIN VERIFICAR</span>':'<span class="tag aceptado">VERIFICADO</span>'} ${c.banned?'<span class="tag rechazado">BANEADO</span>':""}<div class="mu">${esc(c.email)}<br>Tel: ${esc(c.phone||"-")}<br>Código de verificación: <b>${esc(c.vcode||"-")}</b></div><div class="big">${N(c.balance)} FRZ</div><div class="mu">${c.orders_count} pedidos</div>${fe("ban")}<button class="${c.verified?"alt":"ok"}" data-ver="${c.id}" data-vb="${c.verified?0:1}" style="width:100%;margin-top:10px">${c.verified?"Quitar verificación":"✅ Verificar cliente"}</button><button class="alt" data-rst="${c.id}" style="width:100%;margin-top:8px">🔑 Restablecer contraseña</button><button class="${c.banned?"ok":"no"}" data-ban="${c.id}" data-b="${c.banned?0:1}" style="width:100%;margin-top:8px">${c.banned?"Quitar baneo":"Banear cliente"}</button></div>${t?`<div class="card win"><div class="t" style="font-size:18px">Contraseña temporal</div><div class="code">${esc(t.pw)}</div><div class="mu">Solo se muestra ahora. Envíasela al cliente.</div><button class="cp" data-c="${esc(t.pw)}" style="margin-top:8px">Copiar</button>${c.phone?`<a class="abtn" target="_blank" rel="noopener noreferrer" href="https://wa.me/${esc(waNum(c.phone))}?text=${encodeURIComponent("Tu nueva contraseña temporal de FIRE Zone Recargas es: "+t.pw+" . Entra y cámbiala en Billetera.")}">Enviar por WhatsApp</a>`:""}</div>`:""}<h2>Enviar mensaje</h2><div class="card"><input id="nmsg" placeholder="Mensaje para el cliente">${fe("note")}<button id="nsend" data-u="${c.id}" style="width:100%">Enviar mensaje</button></div><h2>Pedidos del cliente</h2>`+(os.length?os.map(mini).join(""):`<p class="mu">Sin pedidos.</p>`);
+  const os=S.orders.filter(o=>o.user_id===c.id),t=S.tmp&&S.tmp.id===c.id?S.tmp:null,r=c.rates||{};
+  return`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:10px"><b>${esc(c.name||"(sin nombre)")}</b> ${tags(c)}<div class="mu">${esc(c.email)}<br>Tel: ${esc(c.phone||"-")}<br>Código de verificación: <b>${esc(c.vcode||"-")}</b></div><div class="big">${N(c.balance)} FRZ</div><div class="mu">${c.orders_count} pedidos${c.reseller||+c.sold>0?" · Vendió "+N(c.sold)+" FRZ":""}</div>${fe("ban")}<button class="${c.verified?"alt":"ok"}" data-ver="${c.id}" data-vb="${c.verified?0:1}" style="width:100%;margin-top:10px">${c.verified?"Quitar verificación":"✅ Verificar cliente"}</button><button class="alt" data-rol="admin:${c.id}:${c.admin?0:1}" style="width:100%;margin-top:8px">${c.admin?"Quitar administrador":"👑 Hacer administrador"}</button><button class="alt" data-rol="res:${c.id}:${c.reseller?0:1}" style="width:100%;margin-top:8px">${c.reseller?"Quitar revendedor":"🏷 Hacer revendedor"}</button><button class="alt" data-rst="${c.id}" style="width:100%;margin-top:8px">🔑 Restablecer contraseña</button><button class="${c.banned?"ok":"no"}" data-ban="${c.id}" data-b="${c.banned?0:1}" style="width:100%;margin-top:8px">${c.banned?"Quitar baneo":"Banear cliente"}</button></div>${c.reseller?`<div class="card"><b>Precios de revendedor</b><div class="mu">Precio de 1 FRZ para este usuario. Vacío = precio normal (${N(P.rate_saldo)} saldo, ${N(P.rate_banco)} CUP, ${N(P.rate_usdt)} USDT).</div><input id="rrs" type="number" step="any" min="0" placeholder="Saldo" value="${r.saldo??""}"><input id="rrb" type="number" step="any" min="0" placeholder="CUP" value="${r.banco??""}"><input id="rru" type="number" step="any" min="0" placeholder="USDT" value="${r.usdt??""}">${fe("rt")}<button id="rtsave" data-u="${c.id}" style="width:100%">Guardar precios</button></div>`:""}${t?`<div class="card win"><div class="t" style="font-size:18px">Contraseña temporal</div><div class="code">${esc(t.pw)}</div><div class="mu">Solo se muestra ahora. Envíasela al cliente.</div><button class="cp" data-c="${esc(t.pw)}" style="margin-top:8px">Copiar</button>${c.phone?`<a class="abtn" target="_blank" rel="noopener noreferrer" href="https://wa.me/${esc(waNum(c.phone))}?text=${encodeURIComponent("Tu nueva contraseña temporal de FIRE Zone Recargas es: "+t.pw+" . Entra y cámbiala en Billetera.")}">Enviar por WhatsApp</a>`:""}</div>`:""}<h2>Enviar mensaje</h2><div class="card"><input id="nmsg" placeholder="Mensaje para el cliente">${fe("note")}<button id="nsend" data-u="${c.id}" style="width:100%">Enviar mensaje</button></div><h2>Pedidos del cliente</h2>`+(os.length?os.map(mini).join(""):`<p class="mu">Sin pedidos.</p>`);
 }
+const gv=sel=>{const e=$(sel);return e?e.value:""};
+const rpcDo=async(fn,args,key)=>{const {error}=await SB.rpc(fn,args);setf(key,error?clean(error.message):"");await loadSettings();await load()};
 function bind(){
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
+  const all=(s,fn)=>document.querySelectorAll(s).forEach(fn);
   g("#out",()=>SB.auth.signOut());
   g("#recheck",()=>load());
   g("#npush",()=>{try{Notification.requestPermission().then(()=>render())}catch(e){}});
@@ -424,35 +457,43 @@ function bind(){
   g("#movb",()=>{S.mov=true;render();window.scrollTo(0,0)});
   g("#mback",()=>{S.mov=false;render()});
   g("#cpb",()=>{S.cp=!S.cp;S.f={};render()});
+  g("#rsb",()=>{S.rs=!S.rs;S.f={};render()});
+  g("#rssend",async()=>{
+    const em=gv("#rse").trim(),am=parseFloat(gv("#rsa"));
+    if(!em||!(am>0)){setf("rs","Escribe el correo y la cantidad.");return render()}
+    const {error}=await SB.rpc("reseller_send",{p_email:em,p_amount:am});
+    if(error){setf("rs",clean(error.message));return render()}
+    S.rs=false;setf("wal","",`✅ Enviaste ${N(am)} FRZ a ${em}.`);await load();
+  });
   g("#cpsave",async()=>{
-    const v=$("#np").value;
+    const v=gv("#np");
     if(v.length<6){setf("cp","La contraseña debe tener 6 o más caracteres.");return render()}
     const {error}=await SB.auth.updateUser({password:v});
     if(error)setf("cp",error.message);else{S.cp=false;setf("wal","","✅ Contraseña cambiada.")}
     render();
   });
-  /* Free Fire */
-  g("#ffb",()=>{S.game=true;S.method=null;render()});
-  g("#back",()=>{S.game=false;render()});
+  /* juegos y ofertas (cliente) */
+  all("[data-g]",b=>b.onclick=()=>{S.game=+b.dataset.g;S.method=null;S.sel=null;S.dr=null;S.f={};render()});
+  g("#back",()=>{S.game=null;S.method=null;render()});
   g("#mdir",()=>{S.method="directo";S.dr=null;S.f={};render()});
   g("#mcre",()=>{S.method="creditos";S.sel=null;S.f={};render()});
   g("#backm",()=>{S.method=null;S.sel=null;S.dr=null;S.f={};render()});
   g("#back2",()=>{S.sel=null;S.f={};render()});
-  document.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{S.sel=+b.dataset.o;S.f={};render()});
+  all("[data-o]",b=>b.onclick=()=>{S.sel=+b.dataset.o;S.f={};render()});
   g("#pay",async()=>{
-    const ff=$("#ffid").value.trim(),[d]=OFFERS[S.sel];
-    if(!/^\d{5,14}$/.test(ff)){setf("pay","Escribe un ID válido.");return render()}
-    const {error}=await SB.rpc("place_order",{p_ff:ff,p_diamonds:d});
+    const ff=gv("#ffid").trim();
+    if(ff.length<3||ff.length>60){setf("pay","Escribe un dato válido (de 3 a 60 caracteres).");return render()}
+    const {error}=await SB.rpc("place_order",{p_offer:S.sel,p_ff:ff});
     if(error){setf("pay",clean(error.message));return render()}
     S.tab="pedidos";resetNav();await load();
   });
   /* recarga directa */
-  document.querySelectorAll("[data-dm]").forEach(b=>b.onclick=()=>{S.dm=b.dataset.dm;render()});
-  document.querySelectorAll("[data-dsel]").forEach(b=>b.onclick=()=>{S.dr={sel:+b.dataset.dsel,step:1,ff:"",phone:"",ref:"",proof:"",busy:false};S.f={};render()});
+  all("[data-dm]",b=>b.onclick=()=>{S.dm=b.dataset.dm;render()});
+  all("[data-dsel]",b=>b.onclick=()=>{S.dr={sel:+b.dataset.dsel,step:1,ff:"",phone:"",ref:"",proof:"",busy:false};S.f={};render()});
   g("#drback",()=>{S.dr=null;S.f={};render()});
   g("#drnext",()=>{
-    const v=$("#drid").value.trim();S.dr.ff=v;
-    if(!/^\d{5,14}$/.test(v)){setf("dr","Escribe un ID válido.");return render()}
+    const v=gv("#drid").trim();S.dr.ff=v;
+    if(v.length<3||v.length>60){setf("dr","Escribe un dato válido (de 3 a 60 caracteres).");return render()}
     S.dr.step=2;S.f={};render();window.scrollTo(0,0);
   });
   g("#dredit",()=>{S.dr.step=1;render()});
@@ -460,23 +501,23 @@ function bind(){
   g("#drsend",async()=>{
     const r=S.dr,m=S.dm;if(!checkPay(m,r,"dr"))return;
     r.busy=true;render();
-    const {error}=await SB.rpc("create_direct",{p_diamonds:OFFERS[r.sel][0],p_ff:r.ff,p_phone:m==="usdt"?"":r.phone,p_proof:r.proof,p_method:m,p_ref:r.ref||""});
+    const {error}=await SB.rpc("create_direct",{p_offer:r.sel,p_ff:r.ff,p_phone:m==="usdt"?"":r.phone,p_proof:r.proof,p_method:m,p_ref:r.ref||""});
     if(error){r.busy=false;setf("dr",clean(error.message));return render()}
     S.tab="pedidos";resetNav();await load();window.scrollTo(0,0);
   });
   /* créditos y gift cards */
   g("#addc",()=>{S.dep={kind:"credito",method:"saldo",step:1,frz:1,cus:"",phone:"",ref:"",proof:"",busy:false};S.f={};render();window.scrollTo(0,0)});
   g("#inv",()=>{S.inv=!S.inv;render()});
-  document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>copyTxt(b.dataset.c,b));
+  all("[data-c]",b=>b.onclick=()=>copyTxt(b.dataset.c,b));
   g("#dback",()=>{S.dep=null;S.f={};render()});
-  document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{S.dep.frz=+b.dataset.q;S.dep.cus="";render()});
-  document.querySelectorAll("[data-pm]").forEach(b=>b.onclick=()=>{S.dep.method=b.dataset.pm;render()});
+  all("[data-q]",b=>b.onclick=()=>{S.dep.frz=+b.dataset.q;S.dep.cus="";render()});
+  all("[data-pm]",b=>b.onclick=()=>{S.dep.method=b.dataset.pm;render()});
   const cus=$("#dcus");
   if(cus)cus.oninput=()=>{
     S.dep.cus=cus.value;S.dep.frz=parseFloat(cus.value.replace(",","."))||0;
     $("#sum").innerHTML=sumHTML();
     $("#dnext").disabled=calc(S.dep.frz).f<1;
-    document.querySelectorAll("[data-q]").forEach(b=>b.classList.remove("on"));
+    all("[data-q]",b=>b.classList.remove("on"));
   };
   g("#dnext",()=>{if(calc(S.dep.frz).f<1)return;S.dep.step=2;S.f={};render();window.scrollTo(0,0)});
   g("#dedit",()=>{S.dep.step=1;render()});
@@ -495,7 +536,7 @@ function bind(){
   g("#gback",()=>{S.gv=false;S.f={};render()});
   g("#gbuy",()=>{S.dep={kind:"gift",method:"saldo",step:1,frz:1,cus:"",phone:"",ref:"",proof:"",busy:false};S.f={};render();window.scrollTo(0,0)});
   g("#gredeem",async()=>{
-    const code=$("#gcode").value.trim();
+    const code=gv("#gcode").trim();
     if(code.length<6){setf("gift","Escribe el código de tu gift card.");S.f.gcode=code;return render()}
     const {data,error}=await SB.rpc("redeem_gift",{p_code:code});
     if(error){setf("gift",clean(error.message));S.f.gcode=code;return render()}
@@ -503,20 +544,20 @@ function bind(){
     else{setf("gift",String(data).replace(/^error:/,""));S.f.gcode=code;render()}
   });
   /* admin */
-  g("#unlock",()=>{if($("#apw").value===ADMIN_PW){S.adm=true;S.f={}}else setf("gate","Contraseña incorrecta.");render()});
+  g("#unlock",()=>{if(gv("#apw")===ADMIN_PW){S.adm=true;S.f={}}else setf("gate","Contraseña incorrecta.");render()});
   g("#tog",async()=>{
     const next=!S.open;
-    if(!next&&!confirm("¿Apagar la web? Los clientes verán 'Web en mantenimiento' y solo tú podrás entrar."))return;
+    if(!next&&!confirm("¿Apagar la web? Los clientes verán 'Web en mantenimiento' y solo los administradores podrán entrar."))return;
     const {error}=await SB.rpc("set_site_open",{p_open:next});
     setf("tog",error?clean(error.message):"");
     await loadSettings();render();
   });
-  document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{S.asub=b.dataset.s;S.selc=null;S.tmp=null;S.q="";S.fs="all";S.f={};render()});
-  document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.selc=b.dataset.v;S.tmp=null;S.f={};render()});
+  all("[data-s]",b=>b.onclick=()=>{S.asub=b.dataset.s;S.selc=null;S.tmp=null;S.q="";S.fs="all";S.f={};render()});
+  all("[data-v]",b=>b.onclick=()=>{S.selc=b.dataset.v;S.tmp=null;S.f={};render()});
   g("#cback",()=>{S.selc=null;S.tmp=null;S.f={};render()});
   const aq=$("#aq");
   if(aq)aq.oninput=()=>{S.q=aq.value;const l=$("#alist");if(l){l.innerHTML=adminList();bind()}};
-  document.querySelectorAll("[data-fs]").forEach(b=>b.onclick=()=>{S.fs=b.dataset.fs;render()});
+  all("[data-fs]",b=>b.onclick=()=>{S.fs=b.dataset.fs;render()});
   g("#psave",async()=>{
     let err="",n=0;
     for(const i of document.querySelectorAll("[data-pk]")){
@@ -527,82 +568,109 @@ function bind(){
     await loadSettings();
     setf("price",err,err?"":(n?`✅ Se guardaron ${n} precio(s).`:"No hay cambios."));render();
   });
-  document.querySelectorAll("[data-pro]").forEach(b=>b.onclick=async()=>{
+  /* roles y precios de revendedor */
+  all("[data-rol]",b=>b.onclick=async()=>{
+    const [k,id,v]=b.dataset.rol.split(":");
+    if(k==="admin"&&v==="1"&&!confirm("¿Dar acceso de administrador a este usuario? Podrá ver y manejar todo."))return;
+    await rpcDo(k==="admin"?"set_admin":"set_reseller",{p_user:id,p_ok:v==="1"},"ban");
+  });
+  g("#rtsave",async()=>{
+    await rpcDo("set_rates",{p_user:$("#rtsave").dataset.u,p_saldo:nv(gv("#rrs")),p_banco:nv(gv("#rrb")),p_usdt:nv(gv("#rru"))},"rt");
+    setf("rt","","✅ Precios guardados.");render();
+  });
+  /* juegos y ofertas (admin) */
+  g("#gadd",async()=>{
+    await rpcDo("save_game",{p_id:null,p_name:gv("#gn"),p_icon:gv("#gi"),p_idlabel:gv("#gl"),p_active:true},"gm");
+  });
+  const gf=(id,k)=>{const e=document.querySelector(`[data-gf="${id}:${k}"]`);return e?e.value:""};
+  all("[data-gsave]",b=>b.onclick=async()=>{const id=+b.dataset.gsave;await rpcDo("save_game",{p_id:id,p_name:gf(id,"name"),p_icon:gf(id,"icon"),p_idlabel:gf(id,"id_label"),p_active:G(id).active},"gm")});
+  all("[data-gtog]",b=>b.onclick=async()=>{const id=+b.dataset.gtog,x=G(id);await rpcDo("save_game",{p_id:id,p_name:x.name,p_icon:x.icon,p_idlabel:x.id_label,p_active:!x.active},"gm")});
+  all("[data-gdel]",b=>b.onclick=async()=>{if(!confirm("¿Borrar este juego y todas sus ofertas?"))return;await rpcDo("delete_game",{p_id:+b.dataset.gdel},"gm")});
+  const of=(id,k)=>{const e=document.querySelector(`[data-of="${id}:${k}"]`);return e?e.value:""};
+  const offArgs=(id,act)=>{const x=O(id);return{p_id:id,p_game:x.game_id,p_label:of(id,"label"),p_frz:nv(of(id,"frz")),p_ds:nv(of(id,"direct_saldo")),p_db:nv(of(id,"direct_banco")),p_du:nv(of(id,"direct_usdt")),p_active:act}};
+  all("[data-osave]",b=>b.onclick=async()=>{const id=+b.dataset.osave;await rpcDo("save_offer",offArgs(id,O(id).active),"gm")});
+  all("[data-otog]",b=>b.onclick=async()=>{const id=+b.dataset.otog;await rpcDo("save_offer",offArgs(id,!O(id).active),"gm")});
+  all("[data-odel]",b=>b.onclick=async()=>{if(!confirm("¿Borrar esta oferta?"))return;await rpcDo("delete_offer",{p_id:+b.dataset.odel},"gm")});
+  all("[data-oadd]",b=>b.onclick=async()=>{
+    const id=+b.dataset.oadd;
+    await rpcDo("save_offer",{p_id:null,p_game:id,p_label:gv("#nl"+id),p_frz:nv(gv("#nf"+id)),p_ds:nv(gv("#ns"+id)),p_db:nv(gv("#nb"+id)),p_du:nv(gv("#nu"+id)),p_active:true},"gm");
+  });
+  all("[data-pro]",b=>b.onclick=async()=>{
     const [k,id]=b.dataset.pro.split(":");
     b.disabled=true;
     const {error}=await SB.rpc("set_processing",{p_kind:k,p_id:+id});
     setf("adm",error?clean(error.message):"");await load();
   });
-  document.querySelectorAll("[data-ver]").forEach(b=>b.onclick=async()=>{
+  all("[data-ver]",b=>b.onclick=async()=>{
     const {error}=await SB.rpc("set_verified",{p_user:b.dataset.ver,p_ok:b.dataset.vb==="1"});
     setf("ban",error?clean(error.message):"");await load();
   });
-  document.querySelectorAll("[data-rst]").forEach(b=>b.onclick=async()=>{
+  all("[data-rst]",b=>b.onclick=async()=>{
     if(!confirm("¿Restablecer la contraseña de este cliente? Se genera una temporal."))return;
     const {data,error}=await SB.rpc("admin_reset_password",{p_user:b.dataset.rst});
     if(error)setf("ban",clean(error.message));else{S.tmp={id:b.dataset.rst,pw:data};setf("ban")}
     await load();
   });
   g("#gcreate",async()=>{
-    const am=parseFloat($("#gam").value),q=Math.floor(+$("#gqty").value||1),nt=$("#gnote").value.trim();
-    S.f.gam=$("#gam").value;S.f.gqty=String(q);S.f.gnote=nt;
-    if(!(am>0)){setf("gnew","Escribe el valor en FRZ.");S.f.gam=$("#gam").value;return render()}
+    const am=parseFloat(gv("#gam")),q=Math.floor(+gv("#gqty")||1),nt=gv("#gnote").trim();
+    S.f.gam=gv("#gam");S.f.gqty=String(q);S.f.gnote=nt;
+    if(!(am>0)){setf("gnew","Escribe el valor en FRZ.");return render()}
     if(q<1||q>50){setf("gnew","La cantidad va de 1 a 50.");return render()}
     const {data,error}=await SB.rpc("create_gifts",{p_frz:am,p_qty:q,p_note:nt});
     if(error){setf("gnew",clean(error.message));return render()}
     S.newCodes=data||[];S.f.gam="";S.f.gnote="";setf("gnew","",`Creaste ${S.newCodes.length} gift card(s) de ${N(am)} FRZ.`);
     await load();
   });
-  document.querySelectorAll("[data-void]").forEach(b=>b.onclick=async()=>{
+  all("[data-void]",b=>b.onclick=async()=>{
     if(!confirm("¿Anular esta gift card? Ya no se podrá canjear."))return;
     const {error}=await SB.rpc("void_gift",{p_id:+b.dataset.void});
     setf("adm",error?clean(error.message):"");await load();
   });
-  document.querySelectorAll("[data-pf]").forEach(b=>b.onclick=async()=>{
+  all("[data-pf]",b=>b.onclick=async()=>{
     const id=b.dataset.pf,{data,error}=await SB.from("deposits").select("proof").eq("id",id).single();
     if(error||!data){setf("adm","No se pudo cargar la imagen.")}else{S.proofs[id]=data.proof;setf("adm")}
     render();
   });
-  document.querySelectorAll("[data-da]").forEach(b=>b.onclick=async()=>{
+  all("[data-da]",b=>b.onclick=async()=>{
     b.disabled=true;
     const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.da,p_accept:true,p_msg:""});
     setf("adm",error?clean(error.message):"");await load();
   });
-  document.querySelectorAll("[data-dr2]").forEach(b=>b.onclick=async()=>{
+  all("[data-dr2]",b=>b.onclick=async()=>{
     const m=document.querySelector(`[data-dm2="${b.dataset.dr2}"]`).value.trim();
     b.disabled=true;
     const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.dr2,p_accept:false,p_msg:m});
     setf("adm",error?clean(error.message):"");await load();
   });
-  document.querySelectorAll("[data-ban]").forEach(b=>b.onclick=async()=>{
+  all("[data-ban]",b=>b.onclick=async()=>{
     const ban=b.dataset.b==="1";
     if(ban&&!confirm("¿Banear a este cliente?"))return;
     const {error}=await SB.rpc("set_ban",{p_user:b.dataset.ban,p_ban:ban});
     setf("ban",error?clean(error.message):"");await load();
   });
   g("#nsend",async()=>{
-    const t=$("#nmsg").value.trim();
+    const t=gv("#nmsg").trim();
     if(!t){setf("note","Escribe un mensaje.");return render()}
     const {error}=await SB.rpc("send_notification",{p_user:$("#nsend").dataset.u,p_text:t});
     if(error)setf("note",clean(error.message));else setf("note","","Mensaje enviado.");
     render();
   });
   g("#send",async()=>{
-    const em=$("#aem").value.trim(),am=parseFloat($("#aam").value);
+    const em=gv("#aem").trim(),am=parseFloat(gv("#aam"));
     if(!em||!(am>0)){setf("send","Completa correo y cantidad.");return render()}
     const {error}=await SB.rpc("send_frz",{p_email:em,p_amount:am});
     if(error)setf("send",clean(error.message));else setf("send","",`Enviaste ${N(am)} FRZ a ${em}.`);
     await load();
   });
   g("#rmv",async()=>{
-    const em=$("#rem").value.trim(),am=parseFloat($("#ram").value);
+    const em=gv("#rem").trim(),am=parseFloat(gv("#ram"));
     if(!em||!(am>0)){setf("rmv","Completa correo y cantidad.");return render()}
     const {error}=await SB.rpc("remove_frz",{p_email:em,p_amount:am});
     if(error)setf("rmv",clean(error.message));else setf("rmv","",`Quitaste ${N(am)} FRZ a ${em}.`);
     await load();
   });
-  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=async()=>{await SB.rpc("resolve_order",{p_id:+b.dataset.a,p_accept:true,p_msg:""});load()});
-  document.querySelectorAll("[data-r]").forEach(b=>b.onclick=async()=>{
+  all("[data-a]",b=>b.onclick=async()=>{await SB.rpc("resolve_order",{p_id:+b.dataset.a,p_accept:true,p_msg:""});load()});
+  all("[data-r]",b=>b.onclick=async()=>{
     const m=document.querySelector(`[data-m="${b.dataset.r}"]`).value.trim();
     await SB.rpc("resolve_order",{p_id:+b.dataset.r,p_accept:false,p_msg:m});load();
   });
