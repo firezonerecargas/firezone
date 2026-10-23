@@ -1,61 +1,120 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080b12">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E">
 <title>FIRE Zone Recargas</title>
 <style>
-:root{--bg:#0e1116;--card:#181d26;--tx:#f2f4f8;--mu:#8b94a5;--ac:#ff6a00;--ok:#2ecc71;--no:#ff4d4f;--wa:#25d366;--bd:#2a3140;color-scheme:dark}
-@media(prefers-color-scheme:light){:root{--bg:#f4f5f8;--card:#fff;--tx:#161a22;--mu:#667085;--bd:#dfe3ea;color-scheme:light}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,sans-serif;min-height:100vh;padding-top:env(safe-area-inset-top,0px)}
-main{max-width:560px;margin:0 auto;padding:16px 16px 90px}
-h1{font-size:20px;margin:0}h2{font-size:17px;margin:18px 0 10px}
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:10px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0}
-button,.abtn{font:inherit;border:0;border-radius:10px;padding:12px 16px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer}
-button.alt{background:transparent;border:1px solid var(--bd);color:var(--tx)}
-button.ok{background:var(--ok)}button.no{background:var(--no)}
-button:disabled{opacity:.45;cursor:not-allowed}
-.abtn{display:block;text-align:center;text-decoration:none;margin-top:10px;background:var(--wa)}
-a.lk{color:var(--mu);font-size:14px;display:block;margin-top:12px;text-align:center}
-input,textarea{width:100%;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin:6px 0}
-.big{font-size:34px;font-weight:800}.mu{color:var(--mu);font-size:14px}
-.tag{padding:3px 10px;border-radius:99px;font-size:13px;font-weight:700}
-.espera{background:#f5a62333;color:#f5a623}.proc{background:#3b82f633;color:#60a5fa}.aceptado,.disponible{background:#2ecc7133;color:var(--ok)}.rechazado,.anulada{background:#ff4d4f33;color:var(--no)}.canjeada{background:#8b94a533;color:var(--mu)}
-nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#080b12;--card:rgba(255,255,255,.05);--tx:#f4f6fb;--mu:#8a94a8;--ac:#ff6a00;--ac2:#ff2d6f;--ok:#2ecc71;--no:#ff4d4f;--wa:#25d366;--bd:rgba(255,255,255,.09);--inp:rgba(255,255,255,.06);--navbg:rgba(17,22,33,.82);--shadow:0 10px 34px rgba(0,0,0,.32);--grad:linear-gradient(135deg,#ff7a18,#ff2d6f);color-scheme:dark}
+@media(prefers-color-scheme:light){:root{--bg:#f2f4fa;--card:rgba(255,255,255,.88);--tx:#161a22;--mu:#667085;--bd:rgba(20,30,60,.1);--inp:rgba(20,30,60,.05);--navbg:rgba(255,255,255,.92);--shadow:0 8px 26px rgba(30,40,80,.12);color-scheme:light}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;min-height:100vh;padding-top:env(safe-area-inset-top,0px)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(520px 300px at 95% -5%,rgba(255,106,0,.2),transparent 62%),radial-gradient(460px 320px at -10% 18%,rgba(124,58,237,.18),transparent 62%),radial-gradient(500px 300px at 50% 110%,rgba(255,45,111,.12),transparent 60%)}
+main{max-width:560px;margin:0 auto;padding:14px 16px 120px}
+h1{font-size:20px;margin:0}
+h2{font-size:17px;margin:20px 0 12px;display:flex;align-items:center;gap:9px;font-weight:700}
+h2::before{content:"";width:4px;height:18px;border-radius:4px;background:var(--grad);flex:none}
+.top{display:flex;justify-content:space-between;align-items:center;margin:2px 0 14px;gap:8px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand b{display:block;font-size:17px;line-height:1.1}
+.brand small{color:var(--mu);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.logo{width:40px;height:40px;border-radius:13px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 6px 18px rgba(255,80,60,.35)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:12px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--shadow);transition:transform .18s ease,border-color .2s ease}
+.card[data-vw]:active{transform:scale(.98);border-color:var(--ac)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:5px 0}
+button,.abtn{position:relative;overflow:hidden;font:inherit;border:0;border-radius:14px;padding:13px 18px;background:var(--grad);color:#fff;font-weight:700;cursor:pointer;box-shadow:0 7px 20px rgba(255,80,50,.28);transition:transform .12s ease,box-shadow .2s ease,opacity .2s ease}
+button:active,.abtn:active{transform:scale(.96)}
+button.alt{background:var(--card);border:1px solid var(--bd);color:var(--tx);box-shadow:none;backdrop-filter:blur(8px)}
+button.ok{background:linear-gradient(135deg,#34d399,#16a34a);box-shadow:0 7px 20px rgba(22,163,74,.3)}
+button.no{background:linear-gradient(135deg,#ff6b6b,#e11d48);box-shadow:0 7px 20px rgba(225,29,72,.3)}
+button:disabled{opacity:.42;cursor:not-allowed;box-shadow:none;transform:none}
+.abtn{display:block;text-align:center;text-decoration:none;margin-top:10px;background:linear-gradient(135deg,#34d399,#16a34a);box-shadow:0 7px 20px rgba(22,163,74,.3)}
+a.lk{color:var(--mu);font-size:14px;display:block;margin-top:14px;text-align:center}
+input,textarea{width:100%;font:inherit;padding:13px 14px;border-radius:14px;border:1px solid var(--bd);background:var(--inp);color:var(--tx);margin:6px 0;transition:border-color .2s,box-shadow .2s}
+input:focus,textarea:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 4px rgba(255,106,0,.16)}
+input::placeholder,textarea::placeholder{color:var(--mu);opacity:.8}
+label{font-weight:600}
+.big{font-size:34px;font-weight:800;letter-spacing:-.02em}.mu{color:var(--mu);font-size:14px}
+.tag{display:inline-flex;align-items:center;padding:4px 11px;border-radius:99px;font-size:12.5px;font-weight:700;border:1px solid transparent;white-space:nowrap}
+.espera{background:rgba(245,166,35,.15);color:#f5a623;border-color:rgba(245,166,35,.25)}
+.proc{background:rgba(96,165,250,.15);color:#60a5fa;border-color:rgba(96,165,250,.25)}
+.aceptado,.disponible{background:rgba(46,204,113,.15);color:var(--ok);border-color:rgba(46,204,113,.25)}
+.rechazado,.anulada{background:rgba(255,77,79,.15);color:var(--no);border-color:rgba(255,77,79,.25)}
+.canjeada{background:rgba(138,148,168,.15);color:var(--mu);border-color:rgba(138,148,168,.25)}
+.tag.espera::before,.tag.proc::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:7px;animation:pulse 1.3s ease-in-out infinite}
+nav{position:fixed;left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-width:540px;margin:0 auto;display:flex;gap:2px;padding:6px;border-radius:24px;background:var(--navbg);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--bd);box-shadow:0 12px 38px rgba(0,0,0,.4);z-index:15;animation:navin .5s cubic-bezier(.2,.8,.2,1) both}
 nav[hidden]{display:none}
-nav button{flex:1;border-radius:0;background:transparent;color:var(--mu);padding:14px 2px;font-size:13px}
-nav button.on{color:var(--ac)}
-.wafab{position:fixed;right:14px;bottom:16px;width:52px;height:52px;border-radius:50%;background:var(--wa);display:flex;align-items:center;justify-content:center;font-size:26px;text-decoration:none;box-shadow:0 4px 14px #0006;z-index:20}
-nav:not([hidden])~.wafab{bottom:76px}
-.ff{width:100%;padding:22px;font-size:20px;background:linear-gradient(135deg,#ff6a00,#ff2d55)}
-.err{color:var(--no);font-size:14px}.ok2{color:var(--ok);font-size:14px}.center{text-align:center;padding-top:12vh}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;border-radius:18px;background:transparent;color:var(--mu);padding:8px 2px 7px;font-size:11px;font-weight:600;box-shadow:none}
+nav button .ni{font-size:21px;line-height:1.1;position:relative;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+nav button.on{background:rgba(255,106,0,.14);color:var(--ac)}
+nav button.on .ni{transform:translateY(-2px) scale(1.18)}
+nav .bd{position:absolute;top:-5px;right:-9px;min-width:17px;height:17px;border-radius:9px;background:var(--no);color:#fff;font-size:10px;font-style:normal;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;animation:pop .4s}
+.wafab{position:fixed;right:14px;bottom:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#34d399,#16a34a);display:flex;align-items:center;justify-content:center;font-size:26px;text-decoration:none;box-shadow:0 8px 22px rgba(22,163,74,.45);z-index:20;animation:float 3.2s ease-in-out infinite}
+nav:not([hidden])~.wafab{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+.ff{width:100%;padding:24px;font-size:20px;border-radius:20px;background:var(--grad);box-shadow:0 12px 32px rgba(255,70,70,.32)}
+.ff::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);animation:shine 3.4s ease-in-out infinite}
+.err{color:var(--no);font-size:14px}.ok2{color:var(--ok);font-size:14px}.center{text-align:center;padding-top:10vh}
 .win,.lose{border-width:2px;border-style:solid}
-.win{border-color:var(--ok)}.lose{border-color:var(--no)}
+.win{border-color:rgba(46,204,113,.6);box-shadow:0 0 0 1px rgba(46,204,113,.2),0 12px 40px rgba(46,204,113,.16)}
+.lose{border-color:rgba(255,77,79,.6);box-shadow:0 0 0 1px rgba(255,77,79,.2),0 12px 40px rgba(255,77,79,.14)}
 .win .t{font-size:26px;font-weight:900;color:var(--ok);line-height:1.2;margin-bottom:10px}
-.vt{font-size:30px;font-weight:900;line-height:1.15;margin:14px 0}
-.vt2{font-size:22px;font-weight:800;margin:16px 0}
+.vt{font-size:30px;font-weight:900;line-height:1.15;margin:14px 0;letter-spacing:-.02em}
+.vt.grad{background:linear-gradient(90deg,#60a5fa,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.vt.fx{animation:pop .6s cubic-bezier(.3,1.5,.5,1) both}
+.vt2{font-size:22px;font-weight:800;margin:18px 0}
 .vtop{display:flex;justify-content:flex-end}
-.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
-.chip{background:var(--card);border:2px solid var(--bd);color:var(--tx);padding:14px 4px}
-.chip.on,.meth.on{border-color:var(--ac);background:#ff6a0022}
-.meths{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.meth{background:var(--card);border:2px solid var(--bd);color:var(--tx);padding:12px 4px;font-size:14px}
+.spin{width:78px;height:78px;margin:6px auto 4px;border-radius:50%;border:5px solid rgba(96,165,250,.18);border-top-color:#60a5fa;border-right-color:#a78bfa;animation:spin 1s linear infinite}
+.okc{width:92px;height:92px;margin:6px auto}
+.okc circle{fill:rgba(46,204,113,.12);stroke:var(--ok);stroke-width:2.5}
+.okc path{fill:none;stroke:var(--ok);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.okc.no circle{fill:rgba(255,77,79,.12);stroke:var(--no)}.okc.no path{stroke:var(--no)}
+.okc.fx{animation:pop .55s cubic-bezier(.3,1.5,.5,1)}
+.okc.fx circle{stroke-dasharray:152;stroke-dashoffset:152;animation:draw .6s ease forwards}
+.okc.fx path{stroke-dasharray:50;stroke-dashoffset:50;animation:draw .45s .5s ease forwards}
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:30}
+.confetti i{position:absolute;top:-16px;width:9px;height:15px;border-radius:2px;background:var(--c);animation:fall 2.6s var(--d) cubic-bezier(.3,.6,.6,1) forwards}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:8px}
+.chip{background:var(--card);border:2px solid var(--bd);color:var(--tx);padding:15px 4px;box-shadow:none}
+.chip.on,.meth.on{border-color:var(--ac);background:rgba(255,106,0,.15);box-shadow:0 0 0 3px rgba(255,106,0,.1)}
+.meths{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.meth{background:var(--card);border:2px solid var(--bd);color:var(--tx);padding:13px 4px;font-size:14px;box-shadow:none}
 .meth .mu{font-size:11px}
-.hero{background:linear-gradient(135deg,#1d4ed8,#0b1b5a);color:#fff;border:0}
+.hero{background:linear-gradient(135deg,#2563eb,#0b1b5a 70%,#7c3aed);color:#fff;border:0}
 .hero .mu{color:#c7d2fe}
-.bonus{background:#ff6a0022;border-color:var(--ac);color:var(--tx)}
-.amt{font-size:40px;font-weight:900;color:var(--ac)}
-.cp{padding:10px 14px;background:transparent;border:1px solid var(--bd);color:var(--tx)}
-.pick{width:100%;border:2px dashed var(--ac);background:transparent;color:var(--ac);padding:22px}
-hr{border:0;border-top:1px solid var(--bd)}
-.toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;right:12px;max-width:536px;margin:0 auto;background:var(--ac);color:#fff;padding:14px;border-radius:12px;z-index:50;font-weight:600;box-shadow:0 6px 20px #0006}
+.bonus{background:rgba(255,106,0,.12);border-color:rgba(255,106,0,.4);color:var(--tx)}
+.amt{font-size:40px;font-weight:900;color:var(--ac);letter-spacing:-.02em}
+.cp{padding:10px 14px;background:var(--card);border:1px solid var(--bd);color:var(--tx);box-shadow:none;font-weight:600;font-size:14px}
+.pick{width:100%;border:2px dashed var(--ac);background:rgba(255,106,0,.06);color:var(--ac);padding:24px;box-shadow:none}
+hr{border:0;border-top:1px solid var(--bd);margin:12px 0}
+.toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;right:12px;max-width:536px;margin:0 auto;background:var(--grad);color:#fff;padding:15px 16px;border-radius:16px;z-index:50;font-weight:600;box-shadow:0 12px 34px rgba(255,60,80,.4);animation:tin .45s cubic-bezier(.2,.9,.3,1.2) both}
 .gift{background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;border:0}
 .gift .mu{color:#fce7f3}
-.code{font-family:ui-monospace,monospace;font-size:22px;font-weight:800;letter-spacing:1px}
-.qr{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
-.qr button{padding:6px 8px;font-size:12px}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;font-weight:800;letter-spacing:1px}
+.qr{display:flex;flex-wrap:wrap;gap:5px;margin:5px 0}
+.qr button{padding:7px 10px;font-size:12px;font-weight:600}
 .star{color:#f5a623;letter-spacing:2px}
-</style></head><body><main id="app"><div class="center mu">Cargando…</div></main><nav id="nav" hidden></nav><a class="wafab" href="https://wa.me/5353975065" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a>
+.splash{display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:30vh}
+.logo-lg{width:88px;height:88px;border-radius:28px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:46px;box-shadow:0 14px 40px rgba(255,70,70,.45);animation:float 3s ease-in-out infinite}
+.brand-t{font-size:26px;font-weight:800;margin:14px 0 4px;letter-spacing:-.02em}
+.dots{display:flex;gap:7px}.dots i{width:9px;height:9px;border-radius:50%;background:var(--ac);animation:dot 1.1s ease-in-out infinite}.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+.rp{position:absolute;border-radius:50%;background:rgba(255,255,255,.38);transform:scale(0);animation:rip .6s ease-out;pointer-events:none}
+.anim>*{animation:up .5s cubic-bezier(.2,.8,.2,1) both}
+.anim>*:nth-child(2){animation-delay:.04s}.anim>*:nth-child(3){animation-delay:.08s}.anim>*:nth-child(4){animation-delay:.12s}.anim>*:nth-child(5){animation-delay:.16s}.anim>*:nth-child(6){animation-delay:.2s}.anim>*:nth-child(7){animation-delay:.24s}.anim>*:nth-child(8){animation-delay:.28s}.anim>*:nth-child(n+9){animation-delay:.32s}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.7)}100%{opacity:1;transform:scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes shine{0%,55%{left:-60%}100%{left:130%}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes fall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:.2}}
+@keyframes tin{from{opacity:0;transform:translateY(-26px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes navin{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+@keyframes dot{0%,80%,100%{transform:scale(.55);opacity:.4}40%{transform:scale(1);opacity:1}}
+@keyframes rip{to{transform:scale(2.6);opacity:0}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style></head><body><main id="app"><div class="splash"><div class="logo-lg">🔥</div><div class="dots"><i></i><i></i><i></i></div></div></main><nav id="nav" hidden></nav><a class="wafab" href="https://wa.me/5353975065" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const SB_URL="https://uvkqfghbooihwfhbrfhb.supabase.co";
@@ -87,7 +146,7 @@ let P={rate_saldo:290,rate_banco:1160,rate_usdt:1};
 const SB=supabase.createClient(SB_URL,SB_KEY);
 (function(){const q=new URLSearchParams(location.search).get("ref");if(q){try{localStorage.setItem("frz_ref",q.toLowerCase().slice(0,16))}catch(e){}}})();
 const getRef=()=>{try{return localStorage.getItem("frz_ref")||""}catch(e){return ""}};
-const S={sess:null,prof:null,open:true,games:[],offers:[],mode:getRef()?"signup":"login",email:"",name:"",phone:"",tab:"ofertas",game:null,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],tr:[],cards:[],rev:[],rsl:[],cn:{},aud:[],newCodes:[],proofs:{},bal:0,notes:[],seen:null,stat:null,view:null,clients:[],adm:false,asub:"clientes",selc:null,tmp:null,cp:false,rs:false,dep:null,gv:false,mov:false,faq:false,rvd:{stars:5},q:"",fs:"all",inv:false,f:{}};
+const S={sess:null,prof:null,open:true,games:[],offers:[],mode:getRef()?"signup":"login",email:"",name:"",phone:"",tab:"ofertas",game:null,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],tr:[],cards:[],rev:[],rsl:[],cn:{},aud:[],newCodes:[],proofs:{},bal:0,notes:[],seen:null,stat:null,view:null,clients:[],adm:false,asub:"clientes",selc:null,tmp:null,cp:false,rs:false,dep:null,gv:false,mov:false,faq:false,rvd:{stars:5},q:"",fs:"all",inv:false,f:{},_vk:"",_cf:""};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("es");
@@ -125,6 +184,19 @@ const forgotUrl=()=>WA+"?text="+encodeURIComponent("Hola, olvidé mi contraseña
 const stars=n=>"★".repeat(n)+"☆".repeat(5-n);
 const csv=rows=>"\ufeff"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(";")).join("\r\n");
 function dl(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+/* ---------- efectos ---------- */
+function setView(a,html){
+  const vi=S.view?vInfo(S.view):null;
+  const k=[!!S.sess,S.mode,S.tab,S.game,S.method,S.sel,S.dr&&S.dr.step,S.dep&&S.dep.step,S.gv,S.mov,S.faq,S.view?S.view.t+S.view.id+(vi?vi.status:""):"",S.asub,S.selc,S.adm].join("|");
+  a.classList.toggle("anim",k!==S._vk);S._vk=k;a.innerHTML=html;
+}
+document.addEventListener("pointerdown",e=>{
+  const b=e.target.closest&&e.target.closest("button,.abtn");if(!b||b.disabled)return;
+  const r=document.createElement("span"),bb=b.getBoundingClientRect(),s=Math.max(bb.width,bb.height);
+  r.className="rp";r.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-bb.left-s/2}px;top:${e.clientY-bb.top-s/2}px`;
+  b.appendChild(r);setTimeout(()=>r.remove(),620);
+});
+function conf(){return`<div class="confetti">${Array.from({length:18},(_,i)=>`<i style="left:${(i*5.7+3)%100}%;--d:${(i%6)*.14}s;--c:${["#ff7a18","#ff2d6f","#2ecc71","#60a5fa","#f5a623","#a78bfa"][i%6]}"></i>`).join("")}</div>`}
 
 async function copyTxt(t,btn){
   try{await navigator.clipboard.writeText(t)}catch(e){const i=document.createElement("textarea");i.value=t;document.body.appendChild(i);i.select();document.execCommand("copy");i.remove()}
@@ -156,9 +228,9 @@ function unreadN(){return S.sess?myNotes().filter(x=>!x.read).length:0}
 function buildNav(){
   const n=$("#nav");if(!S.sess)return;
   const u=unreadN();
-  const tabs=[["ofertas","🔥 Ofertas"],["pedidos","📦 Pedidos"],["billetera","💰 Billetera"],["avisos","🔔 Avisos"+(u?` (${u})`:"")]];
-  if(isStaff())tabs.push(["admin","⚙️ Admin"]);
-  n.innerHTML=tabs.map(([k,l])=>`<button data-t="${k}" class="${S.tab===k?"on":""}">${l}</button>`).join("");
+  const tabs=[["ofertas","🔥","Ofertas",0],["pedidos","📦","Pedidos",0],["billetera","💰","Billetera",0],["avisos","🔔","Avisos",u]];
+  if(isStaff())tabs.push(["admin","⚙️","Admin",0]);
+  n.innerHTML=tabs.map(([k,i,l,b])=>`<button data-t="${k}" class="${S.tab===k?"on":""}"><span class="ni">${i}${b?`<i class="bd">${b>9?"9+":b}</i>`:""}</span><span>${l}</span></button>`).join("");
   n.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;resetNav();render()});
 }
 async function pollNotes(){
@@ -211,12 +283,13 @@ function vInfo(v){
 const ln=(k,v)=>`<div class="row"><span class="mu">${k}</span><b style="text-align:right">${esc(v)}</b></div>`;
 function viewScreen(){
   const i=vInfo(S.view);if(!i){S.view=null;return pedidos()}
-  const pend=isPend(i.x),w=i.word==="COMPRA"?"compra":"recarga";
+  const ck=S.view.t+S.view.id+i.status,fx=S._cf!==ck;S._cf=ck;
+  const pend=isPend(i.x),w=i.word==="COMPRA"?"compra":"recarga",f=fx?"fx":"";
   const rows=ln("Juego",i.game)+ln("Oferta",i.item)+(i.idv?ln("ID",i.idv):"")+ln("Precio",i.price);
   const no=`<div class="row"><span class="mu">Número del pedido</span><b class="code" style="font-size:20px">#${esc(i.no)}</b></div>`;
-  if(pend)return`<div class="vtop"><button class="alt" id="vmin">⌄ Minimizar</button></div><div class="center" style="padding-top:2vh"><div class="vt" style="color:#60a5fa">⏳ EN PROCESO</div><p style="font-size:18px">Espere a que realicemos su ${w}, puede tardar hasta 10 minutos.</p><div class="card" style="text-align:left">${rows}${ln("Método de pago",i.method)}${no}</div><p class="mu">${fmt(i.date)}</p></div>`;
-  if(i.status==="aceptado")return`<div class="center" style="padding-top:4vh"><div class="vt" style="color:var(--ok)">¡SU ${i.word} SE HA REALIZADO CON ÉXITO!</div><div class="card win" style="text-align:left">${rows}${ln("Total pagado",i.price)}${i.bonus>0?ln("Bono 3%","+"+N(i.bonus)+" FRZ"):""}${i.credit?`<div class="row" style="margin:12px 0"><span class="mu" style="font-size:16px">Créditos actual</span><b style="font-size:26px">${N(S.bal)} FRZ</b></div>`:""}${ln("Método de pago",i.method)}${no}</div>${i.gift?'<p class="mu">Tu código está en Billetera → Gift Cards.</p>':""}<div class="vt2">¡Disfrute de su compra!</div><button id="vback" style="width:100%">Regresar</button></div>`;
-  return`<div class="center" style="padding-top:4vh"><div class="vt" style="color:var(--no)">RECHAZADO</div><div class="card lose" style="text-align:left">${rows}${ln("Total",i.price)}${ln("Método de pago",i.method)}${no}<div class="row"><span class="mu">Mensaje</span><b style="text-align:right">${esc(i.msg||"Sin mensaje")}</b></div></div><p style="font-size:17px">${i.credit?`Te devolvimos ${i.price} a tu billetera.`:"Si ya pagaste, escríbenos por WhatsApp con tu número de pedido."}</p><button id="vback" style="width:100%">Regresar</button></div>`;
+  if(pend)return`<div class="vtop"><button class="alt" id="vmin">⌄ Minimizar</button></div><div class="center" style="padding-top:2vh"><div class="spin"></div><div class="vt grad">EN PROCESO</div><p style="font-size:18px">Espere a que realicemos su ${w}, puede tardar hasta 10 minutos.</p><div class="card" style="text-align:left">${rows}${ln("Método de pago",i.method)}${no}</div><p class="mu">${fmt(i.date)}</p></div>`;
+  if(i.status==="aceptado")return`${fx?conf():""}<div class="center" style="padding-top:3vh"><svg class="okc ${f}" viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg><div class="vt ${f}" style="color:var(--ok)">¡SU ${i.word} SE HA REALIZADO CON ÉXITO!</div><div class="card win" style="text-align:left">${rows}${ln("Total pagado",i.price)}${i.bonus>0?ln("Bono 3%","+"+N(i.bonus)+" FRZ"):""}${i.credit?`<div class="row" style="margin:12px 0"><span class="mu" style="font-size:16px">Créditos actual</span><b style="font-size:26px">${N(S.bal)} FRZ</b></div>`:""}${ln("Método de pago",i.method)}${no}</div>${i.gift?'<p class="mu">Tu código está en Billetera → Gift Cards.</p>':""}<div class="vt2">¡Disfrute de su compra!</div><button id="vback" style="width:100%">Regresar</button></div>`;
+  return`<div class="center" style="padding-top:3vh"><svg class="okc no ${f}" viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M17 17l18 18M35 17L17 35"/></svg><div class="vt ${f}" style="color:var(--no)">RECHAZADO</div><div class="card lose" style="text-align:left">${rows}${ln("Total",i.price)}${ln("Método de pago",i.method)}${no}<div class="row"><span class="mu">Mensaje</span><b style="text-align:right">${esc(i.msg||"Sin mensaje")}</b></div></div><p style="font-size:17px">${i.credit?`Te devolvimos ${i.price} a tu billetera.`:"Si ya pagaste, escríbenos por WhatsApp con tu número de pedido."}</p><button id="vback" style="width:100%">Regresar</button></div>`;
 }
 async function load(){
   if(S.sess){
@@ -244,10 +317,10 @@ function render(){
   const a=$("#app"),n=$("#nav");
   if(!S.sess){n.hidden=true;return auth(a)}
   const st=isStaff();
-  if(!S.open&&!st){n.hidden=true;a.innerHTML=maint();bind();return}
-  if(S.prof&&S.prof.banned&&!st){n.hidden=true;a.innerHTML=bannedView();bind();return}
-  if(S.prof&&!S.prof.verified&&!st){n.hidden=true;a.innerHTML=verifyView();bind();return}
-  if(S.view){n.hidden=true;a.innerHTML=viewScreen();bind();return}
+  if(!S.open&&!st){n.hidden=true;setView(a,maint());bind();return}
+  if(S.prof&&S.prof.banned&&!st){n.hidden=true;setView(a,bannedView());bind();return}
+  if(S.prof&&!S.prof.verified&&!st){n.hidden=true;setView(a,verifyView());bind();return}
+  if(S.view){n.hidden=true;setView(a,viewScreen());bind();return}
   n.hidden=false;buildNav();
   let v;
   if(S.dep&&S.tab==="billetera")v=depView();
@@ -256,25 +329,25 @@ function render(){
   else if(S.faq&&S.tab==="ofertas")v=faqView();
   else v={ofertas,pedidos,billetera,avisos,admin}[S.tab]();
   const warn=(st&&!S.open)?`<div class="card lose" style="text-align:center">🔴 La web está APAGADA para los clientes</div>`:"";
-  a.innerHTML=`<div class="top"><h1>FIRE Zone Recargas</h1><button class="alt" id="out" style="padding:8px 12px">Salir</button></div>`+warn+v;
+  setView(a,`<div class="top"><div class="brand"><span class="logo">🔥</span><div><b>FIRE Zone</b><small>Recargas</small></div></div><button class="alt" id="out" style="padding:8px 14px">Salir</button></div>`+warn+v);
   bind();
   if(S.tab==="avisos"&&!S.dep&&unreadN()>0){
     SB.rpc("mark_notifications_read").then(()=>{S.notes.forEach(x=>{if(x.user_id===S.sess.user.id)x.read=true});buildNav()});
   }
 }
-function maint(){return`<div class="center"><h1>🛠 Web en mantenimiento</h1><p class="mu">Estamos haciendo una actualización. Vuelve en un rato.</p><a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a><button class="alt" id="out" style="margin-top:12px">Salir</button></div>`}
+function maint(){return`<div class="center"><div class="logo-lg" style="margin:0 auto 18px">🛠</div><h1>Web en mantenimiento</h1><p class="mu">Estamos haciendo una actualización. Vuelve en un rato.</p><a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a><button class="alt" id="out" style="margin-top:12px">Salir</button></div>`}
 function verifyView(){
   const p=S.prof||{};
   const msg=`Hola, acabo de crear mi cuenta en FIRE Zone Recargas.\nNombre: ${p.name||""}\nCorreo: ${p.email||""}\nTeléfono: ${p.phone||""}\nCódigo: ${p.vcode||""}`,e=encodeURIComponent(msg);
-  return`<div class="center"><h1>✅ Verifica tu cuenta</h1><p class="mu">Para usar la web, envíanos este mensaje por el medio que prefieras. Te verificamos en cuanto lo recibamos.</p><div class="card" style="text-align:left"><div class="mu">Tu código</div><div class="code">${esc(p.vcode||"")}</div><div class="mu" style="margin-top:10px">Mensaje</div><div style="white-space:pre-line">${esc(msg)}</div></div><a class="abtn" href="${WA}?text=${e}" target="_blank" rel="noopener noreferrer">📲 WhatsApp</a><a class="abtn" style="background:#128c7e" href="intent://send?phone=${WA_NUM}&text=${e}#Intent;package=com.whatsapp.w4b;scheme=whatsapp;end">💼 WhatsApp Business (Android)</a><a class="abtn" style="background:#3b82f6" href="sms:${SMS_NUM}?&body=${e}">✉️ SMS</a><a class="abtn" style="background:#229ed9" href="https://t.me/${TG_USER}?text=${e}" target="_blank" rel="noopener noreferrer">✈️ Telegram</a><button class="alt" data-c="${esc(msg)}" style="width:100%;margin-top:10px">📋 Copiar mensaje</button><p class="mu">Si el botón no abre o no escribe el mensaje, cópialo y pégalo tú.</p><button id="recheck" style="width:100%;margin-top:6px">Ya lo envié · Comprobar</button><button class="alt" id="out" style="margin-top:10px">Salir</button></div>`;
+  return`<div class="center" style="padding-top:4vh"><div class="logo-lg" style="margin:0 auto 14px">✅</div><h1>Verifica tu cuenta</h1><p class="mu">Para usar la web, envíanos este mensaje por el medio que prefieras. Te verificamos en cuanto lo recibamos.</p><div class="card" style="text-align:left"><div class="mu">Tu código</div><div class="code">${esc(p.vcode||"")}</div><div class="mu" style="margin-top:10px">Mensaje</div><div style="white-space:pre-line">${esc(msg)}</div></div><a class="abtn" href="${WA}?text=${e}" target="_blank" rel="noopener noreferrer">📲 WhatsApp</a><a class="abtn" style="background:linear-gradient(135deg,#14b8a6,#0f766e)" href="intent://send?phone=${WA_NUM}&text=${e}#Intent;package=com.whatsapp.w4b;scheme=whatsapp;end">💼 WhatsApp Business (Android)</a><a class="abtn" style="background:linear-gradient(135deg,#60a5fa,#2563eb)" href="sms:${SMS_NUM}?&body=${e}">✉️ SMS</a><a class="abtn" style="background:linear-gradient(135deg,#38bdf8,#0284c7)" href="https://t.me/${TG_USER}?text=${e}" target="_blank" rel="noopener noreferrer">✈️ Telegram</a><button class="alt" data-c="${esc(msg)}" style="width:100%;margin-top:10px">📋 Copiar mensaje</button><p class="mu">Si el botón no abre o no escribe el mensaje, cópialo y pégalo tú.</p><button id="recheck" style="width:100%;margin-top:6px">Ya lo envié · Comprobar</button><button class="alt" id="out" style="margin-top:10px">Salir</button></div>`;
 }
 function noteCards(l){return l.length?l.map(x=>`<div class="card"><div>${!x.read?'<span class="tag espera">NUEVO</span> ':""}${esc(x.text)}</div><div class="mu">${fmt(x.created_at)}</div></div>`).join(""):`<p class="mu">No tienes notificaciones.</p>`}
-function bannedView(){return`<div class="center"><h1>⛔ Cuenta suspendida</h1><p class="mu">Ya no puedes usar esta web. Si crees que es un error, escribe por WhatsApp.</p><div style="text-align:left">${noteCards(myNotes())}</div><button class="alt" id="out">Salir</button></div>`}
+function bannedView(){return`<div class="center"><div class="logo-lg" style="margin:0 auto 18px">⛔</div><h1>Cuenta suspendida</h1><p class="mu">Ya no puedes usar esta web. Si crees que es un error, escribe por WhatsApp.</p><div style="text-align:left">${noteCards(myNotes())}</div><button class="alt" id="out">Salir</button></div>`}
 function auth(a){
   const su=S.mode==="signup";
-  let h=`<div class="center"><h1>🔥 FIRE Zone Recargas</h1><p class="mu">Recarga diamantes de Free Fire con créditos FRZ</p>${!S.open?'<p class="err">🛠 Web en mantenimiento. Solo el personal puede entrar.</p>':""}${getRef()&&su?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
-  h+=(su?`<input id="nm" placeholder="Tu nombre" value="${esc(S.name)}"><input id="ph" type="tel" inputmode="numeric" placeholder="Tu número de WhatsApp (ej.: 5355551234)" value="${esc(S.phone)}">`:"")+`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)">${fe("auth")}<button id="go" style="width:100%">${su?"Crear cuenta":"Iniciar sesión"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${su?"Ya tengo cuenta":"Crear cuenta nueva"}</button>${su?'<p class="mu" style="margin-top:10px">Después de crear la cuenta te pediremos enviar un mensaje (WhatsApp, SMS o Telegram) para verificarla.</p>':`<a class="lk" id="forgot" href="${forgotUrl()}" target="_blank" rel="noopener noreferrer">¿Olvidaste tu contraseña? Escríbenos por WhatsApp</a>`}`;
-  a.innerHTML=h+`</div></div>`;
+  let h=`<div class="center" style="padding-top:6vh"><div class="logo-lg" style="margin:0 auto">🔥</div><div class="brand-t">FIRE Zone Recargas</div><p class="mu" style="margin:0 0 18px">Recarga diamantes de Free Fire con créditos FRZ</p>${!S.open?'<p class="err">🛠 Web en mantenimiento. Solo el personal puede entrar.</p>':""}${getRef()&&su?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
+  h+=(su?`<input id="nm" placeholder="Tu nombre" value="${esc(S.name)}"><input id="ph" type="tel" inputmode="numeric" placeholder="Tu número de WhatsApp (ej.: 5355551234)" value="${esc(S.phone)}">`:"")+`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)">${fe("auth")}<button id="go" style="width:100%;margin-top:6px">${su?"Crear cuenta":"Iniciar sesión"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${su?"Ya tengo cuenta":"Crear cuenta nueva"}</button>${su?'<p class="mu" style="margin-top:10px">Después de crear la cuenta te pediremos enviar un mensaje (WhatsApp, SMS o Telegram) para verificarla.</p>':`<a class="lk" id="forgot" href="${forgotUrl()}" target="_blank" rel="noopener noreferrer">¿Olvidaste tu contraseña? Escríbenos por WhatsApp</a>`}`;
+  setView(a,h+`</div></div>`);
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
   const em=$("#em");if(em)em.oninput=()=>{S.email=em.value.trim().toLowerCase();const f=$("#forgot");if(f)f.href=forgotUrl()};
   g("#sw",()=>{S.mode=su?"login":"signup";S.f={};render()});
@@ -314,7 +387,7 @@ function identCard(m,o,p){
   return`<div class="card"><b>Identifica tu transferencia</b><div class="mu">Número desde el que transferiste</div><div class="row" style="gap:8px"><b>+53</b><input id="${p}ph" inputmode="numeric" maxlength="8" placeholder="5XXXXXXX" value="${esc(o.phone)}"></div><div class="mu">Usaremos este número para localizar tu pago.</div></div>`;
 }
 function proofCard(o,p){
-  return`<div class="card bonus"><b>🕒 Revisión manual</b><div class="mu">Te avisaremos cuando se confirme el pago. Puede tardar hasta 10 minutos.</div></div><div class="card"><b>Comprobante de pago</b><div class="mu">Adjunta una imagen de la transferencia. Agiliza la revisión.</div><input type="file" id="${p}file" accept="image/*" hidden>${o.proof?`<img src="${o.proof}" style="max-width:100%;border-radius:10px;margin:8px 0">`:""}<button class="pick" id="${p}pick" style="margin-top:8px">📷 ${o.proof?"Cambiar imagen":"Adjuntar imagen"}</button></div>`;
+  return`<div class="card bonus"><b>🕒 Revisión manual</b><div class="mu">Te avisaremos cuando se confirme el pago. Puede tardar hasta 10 minutos.</div></div><div class="card"><b>Comprobante de pago</b><div class="mu">Adjunta una imagen de la transferencia. Agiliza la revisión.</div><input type="file" id="${p}file" accept="image/*" hidden>${o.proof?`<img src="${o.proof}" style="max-width:100%;border-radius:12px;margin:8px 0">`:""}<button class="pick" id="${p}pick" style="margin-top:8px">📷 ${o.proof?"Cambiar imagen":"Adjuntar imagen"}</button></div>`;
 }
 function wire(p,get){
   const ph=$("#"+p+"ph");if(ph)ph.oninput=()=>{get().phone=ph.value.replace(/\D/g,"").slice(0,8);ph.value=get().phone};
@@ -341,10 +414,10 @@ function opiniones(){
 function ofertas(){
   if(!S.game){
     const gs=S.games.filter(g=>g.active);
-    return`<h2>Ofertas</h2>${gs.map(g=>`<button class="ff" data-g="${g.id}" style="margin-bottom:10px">${esc(g.icon||"🎮")} ${esc(g.name)}</button>`).join("")||'<p class="mu">Aún no hay juegos disponibles.</p>'}<button class="alt" id="faqb" style="width:100%;margin-top:12px">📖 Reglas y preguntas frecuentes</button>${opiniones()}`;
+    return`<h2>Ofertas</h2>${gs.map(g=>`<button class="ff" data-g="${g.id}" style="margin-bottom:12px">${esc(g.icon||"🎮")} ${esc(g.name)}</button>`).join("")||'<p class="mu">Aún no hay juegos disponibles.</p>'}<button class="alt" id="faqb" style="width:100%;margin-top:6px">📖 Reglas y preguntas frecuentes</button>${opiniones()}`;
   }
   const gm=G(S.game);
-  if(!S.method)return`<h2>${esc(gm.icon||"")} ${esc(gm.name||"")}</h2><div class="card"><b>⚡ Recarga Directa</b><div class="mu">Pagas con saldo, transferencia o USDT y recargamos directo a tu cuenta.</div><button id="mdir" style="width:100%;margin-top:8px">Recarga Directa</button></div><div class="card"><b>💳 Por Créditos</b><div class="mu">Pagas con tus créditos FRZ.</div><button id="mcre" style="width:100%;margin-top:8px">Por Créditos</button></div><button class="alt" id="back">← Volver</button>`;
+  if(!S.method)return`<h2>${esc(gm.icon||"")} ${esc(gm.name||"")}</h2><div class="card"><b>⚡ Recarga Directa</b><div class="mu">Pagas con saldo, transferencia o USDT y recargamos directo a tu cuenta.</div><button id="mdir" style="width:100%;margin-top:10px">Recarga Directa</button></div><div class="card"><b>💳 Por Créditos</b><div class="mu">Pagas con tus créditos FRZ.</div><button id="mcre" style="width:100%;margin-top:10px">Por Créditos</button></div><button class="alt" id="back">← Volver</button>`;
   if(S.method==="directo")return directo();
   const os=offs(S.game);
   if(S.sel==null)return`<h2>Por Créditos</h2>${os.map(o=>{const ok=o.frz>0&&!o.sold_out;return`<div class="card row"><div><b>${esc(o.label)}</b>${o.sold_out?' <span class="tag rechazado">AGOTADO</span>':""}<div class="mu">${o.frz>0?N(o.frz)+" FRZ":"No disponible con créditos"}</div></div><button data-o="${o.id}" ${ok?"":"disabled"}>Comprar</button></div>`}).join("")||'<p class="mu">Aún no hay ofertas.</p>'}<button class="alt" id="backm">← Métodos</button>`;
@@ -356,7 +429,7 @@ function faqView(){
 }
 function directo(){
   const r=S.dr,m=S.dm,gm=G(S.game);
-  if(!r)return`<h2>Recarga Directa</h2><div class="mu" style="margin-bottom:6px">Método de pago</div>${methRow(m,"data-dm",false)}<div style="height:10px"></div>${offs(S.game).map(o=>{const p=dp(m,o),ok=p>0&&!o.sold_out;return`<div class="card row"><div><b>${esc(o.label)}</b>${o.sold_out?' <span class="tag rechazado">AGOTADO</span>':""}<div class="mu">${p>0?ptxt(m,p):"No disponible con este método"}</div></div><button data-dsel="${o.id}" ${ok?"":"disabled"}>Recargar</button></div>`}).join("")||'<p class="mu">Aún no hay ofertas.</p>'}<button class="alt" id="backm">← Métodos</button>`;
+  if(!r)return`<h2>Recarga Directa</h2><div class="mu" style="margin-bottom:8px">Método de pago</div>${methRow(m,"data-dm",false)}<div style="height:12px"></div>${offs(S.game).map(o=>{const p=dp(m,o),ok=p>0&&!o.sold_out;return`<div class="card row"><div><b>${esc(o.label)}</b>${o.sold_out?' <span class="tag rechazado">AGOTADO</span>':""}<div class="mu">${p>0?ptxt(m,p):"No disponible con este método"}</div></div><button data-dsel="${o.id}" ${ok?"":"disabled"}>Recargar</button></div>`}).join("")||'<p class="mu">Aún no hay ofertas.</p>'}<button class="alt" id="backm">← Métodos</button>`;
   const o=O(r.sel),price=dp(m,o);
   if(r.step===1)return`<h2>${esc(o.label)} · ${ptxt(m,price)}</h2><div class="card"><label>Coloca tu ${esc(gm.id_label||"ID")}</label><input id="drid" placeholder="${esc(gm.id_label||"ID")}" value="${esc(r.ff)}">${fe("dr")}<button id="drnext" style="width:100%">Continuar ›</button></div><button class="alt" id="drback">← Volver</button>`;
   return`<h2>Recarga Directa</h2><div class="card row"><div><b>${esc(o.label)}</b><div class="mu">${esc(gm.id_label||"ID")}: ${esc(r.ff)}</div></div><button class="cp" id="dredit">✏️ Editar</button></div>${payCard(m,price)}${identCard(m,r,"dr")}${proofCard(r,"dr")}${fe("dr")}<button id="drsend" style="width:100%" ${r.busy?"disabled":""}>Ya transferí · Enviar a revisión ›</button>`;
@@ -368,7 +441,7 @@ function pedidos(){
 function billetera(){
   const p=S.prof||{},mn=S.deps.filter(x=>x.user_id===S.sess.user.id&&x.kind==="credito"),vs=S.rsl.filter(r=>r.from_user===S.sess.user.id);
   const link=location.origin+location.pathname+"?ref="+(p.ref_code||"");
-  let h=`<h2>Billetera</h2><div class="card"><div class="mu">Cuenta ${p.is_reseller?'<span class="tag aceptado">REVENDEDOR</span>':""}${p.is_helper?'<span class="tag proc">AYUDANTE</span>':""}</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}${p.phone?" · "+esc(p.phone):""}</div><div class="mu" style="margin-top:10px">Saldo</div><div class="big">${N(S.bal)} FRZ</div>${fe("wal")}<button id="addc" style="width:100%;margin-top:10px">➕ Añadir créditos</button>${isRes()?`<button class="alt" id="rsb" style="width:100%;margin-top:8px">📤 Transferir créditos</button>`:""}<button class="alt" id="movb" style="width:100%;margin-top:8px">📜 Movimientos</button><button class="alt" id="gifts" style="width:100%;margin-top:8px">🎟 Gift Cards</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana</button><button class="alt" id="cpb" style="width:100%;margin-top:8px">🔑 Cambiar contraseña</button></div>`;
+  let h=`<h2>Billetera</h2><div class="card hero"><div class="mu">Cuenta ${p.is_reseller?'<span class="tag aceptado">REVENDEDOR</span>':""}${p.is_helper?'<span class="tag proc">AYUDANTE</span>':""}</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}${p.phone?" · "+esc(p.phone):""}</div><div class="mu" style="margin-top:12px">Saldo</div><div class="big">${N(S.bal)} FRZ</div></div><div class="card">${fe("wal")}<button id="addc" style="width:100%">➕ Añadir créditos</button>${isRes()?`<button class="alt" id="rsb" style="width:100%;margin-top:8px">📤 Transferir créditos</button>`:""}<button class="alt" id="movb" style="width:100%;margin-top:8px">📜 Movimientos</button><button class="alt" id="gifts" style="width:100%;margin-top:8px">🎟 Gift Cards</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana</button><button class="alt" id="cpb" style="width:100%;margin-top:8px">🔑 Cambiar contraseña</button></div>`;
   if(S.rs&&isRes())h+=`<div class="card"><b>📤 Transferir créditos</b><div class="mu">Envía FRZ de tu saldo a otro usuario registrado.</div><input id="rse" type="email" placeholder="Correo del usuario"><input id="rsa" type="number" step="any" min="0.01" placeholder="Cantidad FRZ">${fe("rs")}<button id="rssend" style="width:100%">Transferir</button></div>`;
   if(S.cp)h+=`<div class="card"><b>Cambiar contraseña</b><input id="np" type="password" placeholder="Nueva contraseña (mínimo 6)">${fe("cp")}<button id="cpsave" style="width:100%">Guardar contraseña</button></div>`;
   if(S.inv)h+=`<div class="card"><b>Invita y gana 5%</b><p class="mu">Comparte tu enlace. Cuando alguien que entre con él recargue créditos, tú ganas el 5% de esa recarga.</p><input readonly value="${esc(link)}" id="rlink"><div class="row"><button class="cp" id="rcopy" data-c="${esc(link)}">Copiar enlace</button><a class="abtn" style="margin:0" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text=${encodeURIComponent("Recarga en FIRE Zone: "+link)}">WhatsApp</a></div></div>`;
@@ -394,7 +467,7 @@ function sumHTML(){
 function depView(){return S.dep.step===1?dep1():dep2()}
 function dep1(){
   const d=S.dep,c=calc(d.frz),g=isGift();
-  return`<button class="alt" id="dback">← Volver</button><h2>${g?"Comprar gift card":"Añadir créditos"}</h2><div class="card hero"><div class="mu">Saldo actual</div><div class="big">${N(S.bal)} FRZ</div></div>${c.elig?`<div class="card bonus">✨ Primer depósito: se te suma un 3% extra.</div>`:""}<h2>1. Elige el monto</h2><div class="chips">${QUICK.map(q=>`<button class="chip ${!d.cus&&d.frz===q?"on":""}" data-q="${q}">${q} FRZ</button>`).join("")}</div><div class="mu">O escribe otro monto (mínimo 1 FRZ, puede llevar decimales)</div><input id="dcus" inputmode="decimal" placeholder="Ej.: 1.80" value="${esc(d.cus)}"><h2>2. Método de pago</h2>${methRow(d.method,"data-pm",true)}<div class="card" id="sum" style="margin-top:10px">${sumHTML()}</div><button id="dnext" style="width:100%" ${c.f<1?"disabled":""}>Continuar ›</button>`;
+  return`<button class="alt" id="dback">← Volver</button><h2>${g?"Comprar gift card":"Añadir créditos"}</h2><div class="card hero"><div class="mu">Saldo actual</div><div class="big">${N(S.bal)} FRZ</div></div>${c.elig?`<div class="card bonus">✨ Primer depósito: se te suma un 3% extra.</div>`:""}<h2>1. Elige el monto</h2><div class="chips">${QUICK.map(q=>`<button class="chip ${!d.cus&&d.frz===q?"on":""}" data-q="${q}">${q} FRZ</button>`).join("")}</div><div class="mu">O escribe otro monto (mínimo 1 FRZ, puede llevar decimales)</div><input id="dcus" inputmode="decimal" placeholder="Ej.: 1.80" value="${esc(d.cus)}"><h2>2. Método de pago</h2>${methRow(d.method,"data-pm",true)}<div class="card" id="sum" style="margin-top:12px">${sumHTML()}</div><button id="dnext" style="width:100%" ${c.f<1?"disabled":""}>Continuar ›</button>`;
 }
 function dep2(){
   const d=S.dep,c=calc(d.frz),g=isGift(),price=pr(d.method,c.f);
@@ -411,7 +484,7 @@ function depCard(x){
   const c=cm(x.user_id),pf=S.proofs[x.id],dir=x.kind==="directo";
   const title=dir?`⚡ ${esc(x.game||"")} · ${esc(it(x))} · ID ${esc(x.ff_id)}`:`${x.kind==="gift"?"🎟 Gift card · ":""}${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}`;
   const who=x.phone?`Tel: +53 ${esc(x.phone)}`:`TXID: ${esc(x.ref||"-")}`;
-  return`<div class="card"><div class="row"><b>#${esc(x.order_no)} · ${title}</b>${stTag(x)}</div><div class="mu">${esc(c.name||"")} · ${esc(x.email)}<br>${METHODS[mOf(x)].icon} ${METHODS[mOf(x)].name} · ${px(x)}<br>${who}<br>${fmt(x.created_at)}</div>${pf?`<img src="${pf}" style="max-width:100%;border-radius:10px;margin-top:8px">`:`<button class="alt" data-pf="${x.id}" style="margin-top:8px">Ver captura</button>`}${x.status==="pendiente"?`${!x.processing?`<button class="alt" data-pro="deposito:${x.id}" style="width:100%;margin-top:8px">🔵 Marcar en proceso</button>`:""}<input data-dm2="${x.id}" placeholder="Mensaje si rechazas">${qrow("dm2",x.id)}<div class="row"><button class="ok" data-da="${x.id}">ACEPTAR</button><button class="no" data-dr2="${x.id}">RECHAZAR</button></div>`:""}</div>`;
+  return`<div class="card"><div class="row"><b>#${esc(x.order_no)} · ${title}</b>${stTag(x)}</div><div class="mu">${esc(c.name||"")} · ${esc(x.email)}<br>${METHODS[mOf(x)].icon} ${METHODS[mOf(x)].name} · ${px(x)}<br>${who}<br>${fmt(x.created_at)}</div>${pf?`<img src="${pf}" style="max-width:100%;border-radius:12px;margin-top:8px">`:`<button class="alt" data-pf="${x.id}" style="margin-top:8px">Ver captura</button>`}${x.status==="pendiente"?`${!x.processing?`<button class="alt" data-pro="deposito:${x.id}" style="width:100%;margin-top:8px">🔵 Marcar en proceso</button>`:""}<input data-dm2="${x.id}" placeholder="Mensaje si rechazas">${qrow("dm2",x.id)}<div class="row"><button class="ok" data-da="${x.id}">ACEPTAR</button><button class="no" data-dr2="${x.id}">RECHAZAR</button></div>`:""}</div>`;
 }
 function ordCard(o){
   return`<div class="card"><div class="row"><b>#${esc(o.order_no)} · ${esc(it(o))} · ${N(o.frz)} FRZ</b>${stTag(o)}</div><div class="mu">${o.game?esc(o.game)+" · ":""}ID: ${esc(o.ff_id)}<br>${esc(cm(o.user_id).name||"")} · ${esc(o.email)} · ${fmt(o.created_at)}</div>${o.status==="espera"?`${!o.processing?`<button class="alt" data-pro="orden:${o.id}" style="width:100%;margin-top:8px">🔵 Marcar en proceso</button>`:""}<input data-m="${o.id}" placeholder="Mensaje si rechazas">${qrow("m",o.id)}<div class="row"><button class="ok" data-a="${o.id}">ACEPTAR</button><button class="no" data-r="${o.id}">RECHAZAR</button></div>`:""}</div>`;
@@ -425,7 +498,7 @@ const stOk=x=>S.fs==="all"||(S.fs==="pend"&&(x.status==="pendiente"||x.status===
 const isNo=()=>/^#?\d{3,}$/.test(S.q.trim());
 const noQ=()=>+S.q.trim().replace("#","");
 function fbar(st){
-  return`<input id="aq" placeholder="🔍 Buscar (nombre, correo, ID o # de pedido)" value="${esc(S.q)}">`+(st?`<div class="row" style="gap:4px;margin:6px 0">${[["all","Todos"],["pend","Pendientes"],["ok","Aceptados"],["no","Rechazados"]].map(([k,l])=>`<button class="${S.fs===k?"":"alt"}" data-fs="${k}" style="flex:1;padding:8px 0;font-size:12px">${l}</button>`).join("")}</div>`:"");
+  return`<input id="aq" placeholder="🔍 Buscar (nombre, correo, ID o # de pedido)" value="${esc(S.q)}">`+(st?`<div class="row" style="gap:4px;margin:6px 0">${[["all","Todos"],["pend","Pendientes"],["ok","Aceptados"],["no","Rechazados"]].map(([k,l])=>`<button class="${S.fs===k?"":"alt"}" data-fs="${k}" style="flex:1;padding:9px 0;font-size:12px">${l}</button>`).join("")}</div>`:"");
 }
 function tags(c){return`${c.admin?'<span class="tag proc">ADMIN</span> ':""}${c.helper?'<span class="tag proc">AYUDANTE</span> ':""}${c.reseller?'<span class="tag aceptado">REVENDEDOR</span> ':""}${!c.verified?'<span class="tag espera">SIN VERIFICAR</span> ':""}${c.banned?'<span class="tag rechazado">BANEADO</span>':""}`}
 function adminList(){
@@ -455,7 +528,7 @@ function ventas(){
 }
 function topv(){
   const r=S.clients.filter(c=>c.reseller||+c.sold>0).sort((a,b)=>b.sold-a.sold);
-  return`<div class="card bonus"><div class="mu">Ranking por FRZ que cada revendedor ha transferido a otros usuarios desde la web.</div></div>`+(r.length?r.map((c,i)=>`<div class="card row"><div><b>${i+1}. ${esc(c.name||c.email)}</b> ${c.reseller?'<span class="tag aceptado">REVENDEDOR</span>':""}<div class="mu">${esc(c.email)}</div></div><b>${N(c.sold)} FRZ</b></div>`).join(""):`<p class="mu">Aún no hay ventas de revendedores.</p>`);
+  return`<div class="card bonus"><div class="mu">Ranking por FRZ que cada revendedor ha transferido a otros usuarios desde la web.</div></div>`+(r.length?r.map((c,i)=>`<div class="card row"><div><b>${["🥇","🥈","🥉"][i]||i+1+"."} ${esc(c.name||c.email)}</b> ${c.reseller?'<span class="tag aceptado">REVENDEDOR</span>':""}<div class="mu">${esc(c.email)}</div></div><b>${N(c.sold)} FRZ</b></div>`).join(""):`<p class="mu">Aún no hay ventas de revendedores.</p>`);
 }
 function precios(){
   const rows=[["rate_saldo","1 FRZ en saldo"],["rate_banco","1 FRZ en CUP"],["rate_usdt","1 FRZ en USDT"]];
@@ -490,7 +563,7 @@ function admin(){
   if(!tabs.some(t=>t[0]===S.asub))S.asub="clientes";
   let h=boss?`<div class="card ${S.open?"":"lose"}"><div class="row"><div><b>Estado de la web</b><div class="mu">${S.open?"🟢 Encendida: los clientes pueden usarla":"🔴 Apagada: solo el personal puede entrar"}</div></div><button class="${S.open?"no":"ok"}" id="tog">${S.open?"Apagar web":"Encender web"}</button></div>${fe("tog")}</div>`:`<div class="card bonus"><div class="mu">Modo ayudante: puedes atender pedidos, recargas y verificar cuentas.</div></div>`;
   h+=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big" style="font-size:26px">${cl.length}</div></div><div><div class="mu">Sin verificar</div><div class="big" style="font-size:26px">${nvf}</div></div><div><div class="mu">Pedidos</div><div class="big" style="font-size:26px">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big" style="font-size:26px">${dpn.length}</div></div></div>${fe("adm")}`;
-  h+=`<div class="row" style="gap:4px;margin-bottom:10px;flex-wrap:wrap">${tabs.map(([k,l])=>`<button class="${S.asub===k?"":"alt"}" data-s="${k}" style="flex:1 1 22%;padding:10px 0;font-size:12px">${l}</button>`).join("")}</div>`;
+  h+=`<div class="row" style="gap:5px;margin-bottom:12px;flex-wrap:wrap">${tabs.map(([k,l])=>`<button class="${S.asub===k?"":"alt"}" data-s="${k}" style="flex:1 1 22%;padding:10px 0;font-size:12px">${l}</button>`).join("")}</div>`;
   if(S.asub==="clientes")h+=S.selc?detail():fbar(false)+`<div id="alist">${adminList()}</div>`;
   if(S.asub==="recargas"||S.asub==="pedidos")h+=fbar(true)+`<div id="alist">${adminList()}</div>`;
   if(!boss)return h;
@@ -501,7 +574,7 @@ function admin(){
   if(S.asub==="opin")h+=opinAdmin();
   if(S.asub==="reg")h+=registro();
   if(S.asub==="copia")h+=copia();
-  if(S.asub==="frz")h+=`<div class="card"><div class="mu">Tu billetera</div><div class="big">∞ FRZ</div></div><h2>Enviar</h2><div class="card"><input id="aem" type="email" placeholder="Correo del cliente"><input id="aam" type="number" step="any" min="0.01" placeholder="Cantidad FRZ">${fe("send")}<button id="send" style="width:100%">Enviar</button></div><h2>Quitar FRZ</h2><div class="card"><input id="rem" type="email" placeholder="Correo del cliente"><input id="ram" type="number" step="any" min="0.01" placeholder="Cantidad FRZ a quitar">${fe("rmv")}<button class="no" id="rmv" style="width:100%">Quitar</button></div>`;
+  if(S.asub==="frz")h+=`<div class="card hero"><div class="mu">Tu billetera</div><div class="big">∞ FRZ</div></div><h2>Enviar</h2><div class="card"><input id="aem" type="email" placeholder="Correo del cliente"><input id="aam" type="number" step="any" min="0.01" placeholder="Cantidad FRZ">${fe("send")}<button id="send" style="width:100%">Enviar</button></div><h2>Quitar FRZ</h2><div class="card"><input id="rem" type="email" placeholder="Correo del cliente"><input id="ram" type="number" step="any" min="0.01" placeholder="Cantidad FRZ a quitar">${fe("rmv")}<button class="no" id="rmv" style="width:100%">Quitar</button></div>`;
   if(S.asub==="gift"){
     h+=`<div class="card gift"><b>Gift cards infinitas</b><div class="mu">Crea las que quieras, gratis. Cada código se puede canjear una sola vez.</div></div><div class="card"><input id="gam" type="number" step="any" min="0.01" placeholder="Valor en FRZ" value="${esc(S.f.gam||"")}"><input id="gqty" type="number" min="1" max="50" placeholder="Cantidad (1 a 50)" value="${esc(S.f.gqty||"1")}"><input id="gnote" maxlength="80" placeholder="Nota (opcional)" value="${esc(S.f.gnote||"")}">${fe("gnew")}<button id="gcreate" style="width:100%">Crear gift cards</button></div>`;
     if(S.newCodes.length)h+=`<div class="card win"><div class="t" style="font-size:20px">Códigos creados</div>${S.newCodes.map(c=>`<div class="row"><span class="code" style="font-size:18px">${esc(c)}</span><button class="cp" data-c="${esc(c)}">Copiar</button></div>`).join("")}<button class="cp" data-c="${esc(S.newCodes.join("\n"))}" style="margin-top:8px">Copiar todos</button></div>`;
@@ -512,7 +585,7 @@ function admin(){
 function detail(){
   const c=S.clients.find(x=>x.id===S.selc);if(!c)return"";
   const boss=isBoss(),os=S.orders.filter(o=>o.user_id===c.id),t=S.tmp&&S.tmp.id===c.id?S.tmp:null,r=c.rates||{},vs=S.rsl.filter(x=>x.from_user===c.id);
-  let h=`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:10px"><b>${esc(c.name||"(sin nombre)")}</b> ${tags(c)}<div class="mu">${esc(c.email)}<br>Tel: ${esc(c.phone||"-")}<br>Código de verificación: <b>${esc(c.vcode||"-")}</b></div><div class="big">${N(c.balance)} FRZ</div><div class="mu">${c.orders_count} pedidos${c.reseller||+c.sold>0?" · Vendió "+N(c.sold)+" FRZ":""}</div>${fe("ban")}<button class="${c.verified?"alt":"ok"}" data-ver="${c.id}" data-vb="${c.verified?0:1}" style="width:100%;margin-top:10px">${c.verified?"Quitar verificación":"✅ Verificar cliente"}</button>`;
+  let h=`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:12px"><b>${esc(c.name||"(sin nombre)")}</b> ${tags(c)}<div class="mu">${esc(c.email)}<br>Tel: ${esc(c.phone||"-")}<br>Código de verificación: <b>${esc(c.vcode||"-")}</b></div><div class="big">${N(c.balance)} FRZ</div><div class="mu">${c.orders_count} pedidos${c.reseller||+c.sold>0?" · Vendió "+N(c.sold)+" FRZ":""}</div>${fe("ban")}<button class="${c.verified?"alt":"ok"}" data-ver="${c.id}" data-vb="${c.verified?0:1}" style="width:100%;margin-top:10px">${c.verified?"Quitar verificación":"✅ Verificar cliente"}</button>`;
   if(boss)h+=`<button class="alt" data-rol="admin:${c.id}:${c.admin?0:1}" style="width:100%;margin-top:8px">${c.admin?"Quitar administrador":"👑 Hacer administrador"}</button><button class="alt" data-rol="help:${c.id}:${c.helper?0:1}" style="width:100%;margin-top:8px">${c.helper?"Quitar ayudante":"🧑‍💼 Hacer ayudante"}</button><button class="alt" data-rol="res:${c.id}:${c.reseller?0:1}" style="width:100%;margin-top:8px">${c.reseller?"Quitar revendedor":"🏷 Hacer revendedor"}</button><button class="alt" data-rst="${c.id}" style="width:100%;margin-top:8px">🔑 Restablecer contraseña</button><button class="${c.banned?"ok":"no"}" data-ban="${c.id}" data-b="${c.banned?0:1}" style="width:100%;margin-top:8px">${c.banned?"Quitar baneo":"Banear cliente"}</button>`;
   h+=`</div><div class="card"><b>📝 Nota interna</b><div class="mu">Solo la ven el administrador y los ayudantes.</div><textarea id="cnote" rows="2" maxlength="500" placeholder="Ej.: cliente de confianza">${esc(S.cn[c.id]||"")}</textarea>${fe("cn")}<button class="alt" id="cnsave" data-u="${c.id}" style="width:100%">Guardar nota</button></div>`;
   if(boss&&c.reseller)h+=`<div class="card"><b>Precios de revendedor</b><div class="mu">Precio de 1 FRZ para este usuario. Vacío = precio normal (${N(P.rate_saldo)} saldo, ${N(P.rate_banco)} CUP, ${N(P.rate_usdt)} USDT).</div><input id="rrs" type="number" step="any" min="0" placeholder="Saldo" value="${r.saldo??""}"><input id="rrb" type="number" step="any" min="0" placeholder="CUP" value="${r.banco??""}"><input id="rru" type="number" step="any" min="0" placeholder="USDT" value="${r.usdt??""}">${fe("rt")}<button id="rtsave" data-u="${c.id}" style="width:100%">Guardar precios</button></div>`;
