@@ -121,10 +121,8 @@ const SB_URL="https://uvkqfghbooihwfhbrfhb.supabase.co";
 const SB_KEY="sb_publishable_1MCV8VBGzRy66v8RBmFqkQ_zKNCzs85";
 const ADMIN_PW="111113FFRECARGASFFFRZ";
 const WA="https://wa.me/5353975065";
-const WA_NUM="5353975065",SMS_NUM="+5353975065",TG_USER="ReyShop23";
-const DEST="53975065";
-const CARD_SHOW="9234 0699 9423 3942",CARD_RAW="9234069994233942",CONFIRM="54801767";
-const WALLET="0xCBfB34fDbA5967EAB6AA331D2e86c57FDF4D0A3a";
+const WA_NUM="5353975065",TG_USER="ReyShop23";
+const PCOLS="id,email,name,phone,ref_code,referred_by,verified,banned,is_admin,is_reseller,is_helper,custom_rates";
 const QR=["ID incorrecto","Pago no recibido","Monto incorrecto","Comprobante ilegible","Oferta agotada"];
 const METHODS={
   saldo:{icon:"📱",name:"Saldo móvil",short:"Saldo",unit:"saldo"},
@@ -135,18 +133,21 @@ const QUICK=[1,5,10,25,50];
 const FAQ=[
  ["¿Cómo recargo?","Entra a Ofertas, elige el juego y un método. Con Recarga Directa pagas con saldo, transferencia o USDT. Con Por Créditos pagas con tus FRZ."],
  ["¿Cuánto tarda?","Puede tardar hasta 10 minutos. Verás el estado en Pedidos: En proceso y luego Aceptado o Rechazado. Cada pedido tiene un número."],
- ["¿Qué métodos de pago aceptan?","Saldo móvil, transferencia bancaria (tarjeta Bandec) y USDT por la red BEP20. Transfiere siempre el importe exacto."],
+ ["¿Qué métodos de pago aceptan?","Saldo móvil, transferencia bancaria y USDT por la red BEP20. Transfiere siempre el importe exacto."],
  ["Puse mal mi ID","Escríbenos por WhatsApp lo antes posible con tu número de pedido."],
  ["¿Y si rechazan mi pedido?","Con créditos, los FRZ vuelven a tu billetera. Si pagaste con dinero real, escríbenos por WhatsApp."],
- ["Bono y referidos","Tu primer depósito de créditos recibe un 3% extra. Con Invita y gana ganas el 5% de las recargas de créditos de quienes entren con tu enlace."],
+ ["Bono y referidos","Tu primer depósito de créditos recibe un 3% extra. Con Invita y gana ganas el 5% del primer depósito de créditos de cada persona que entre con tu enlace."],
  ["Gift cards","Valen lo mismo que el crédito FRZ. Se canjean en Billetera → Gift Cards y cada código se usa una sola vez."],
+ ["¿Por qué verifico mi cuenta?","Para evitar cuentas falsas. Nos escribes, te damos un código y lo escribes en la web."],
  ["Soporte","Toca el botón verde de WhatsApp, siempre visible en la esquina."]
 ];
 let P={rate_saldo:290,rate_banco:1160,rate_usdt:1};
+let PAY={saldo:"53975065",card:"9234069994233942",confirm:"54801767",wallet:"0xCBfB34fDbA5967EAB6AA331D2e86c57FDF4D0A3a"};
+const cardShow=s=>String(s||"").replace(/\s/g,"").replace(/(\d{4})(?=\d)/g,"$1 ");
 const SB=supabase.createClient(SB_URL,SB_KEY);
 (function(){const q=new URLSearchParams(location.search).get("ref");if(q){try{localStorage.setItem("frz_ref",q.toLowerCase().slice(0,16))}catch(e){}}})();
 const getRef=()=>{try{return localStorage.getItem("frz_ref")||""}catch(e){return ""}};
-const S={sess:null,prof:null,open:true,games:[],offers:[],mode:getRef()?"signup":"login",email:"",name:"",phone:"",tab:"ofertas",game:null,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],tr:[],cards:[],rev:[],rsl:[],cn:{},aud:[],newCodes:[],proofs:{},bal:0,notes:[],seen:null,stat:null,view:null,clients:[],adm:false,asub:"clientes",selc:null,tmp:null,cp:false,rs:false,dep:null,gv:false,mov:false,faq:false,rvd:{stars:5},q:"",fs:"all",inv:false,f:{},_vk:"",_cf:""};
+const S={sess:null,prof:null,open:true,games:[],offers:[],mode:getRef()?"signup":"login",email:"",name:"",phone:"",tab:"ofertas",game:null,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],tr:[],cards:[],rev:[],rsl:[],cn:{},aud:[],rf:{invited:0,paid:0,earned:0},vcv:"",newCodes:[],proofs:{},bal:0,notes:[],seen:null,stat:null,view:null,clients:[],adm:false,asub:"clientes",selc:null,tmp:null,cp:false,rs:false,dep:null,gv:false,mov:false,faq:false,rvd:{stars:5},q:"",fs:"all",inv:false,f:{},_vk:"",_cf:""};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("es");
@@ -241,6 +242,7 @@ async function pollNotes(){
 async function loadSettings(){
   try{const {data}=await SB.from("site_settings").select("value").eq("key","open").maybeSingle();S.open=!(data&&data.value==="false")}catch(e){S.open=true}
   try{const {data}=await SB.from("prices").select("key,value");if(data)data.forEach(r=>{P[r.key]=+r.value})}catch(e){}
+  try{const {data}=await SB.from("pay_settings").select("key,value");if(data)data.forEach(r=>{PAY[r.key]=r.value})}catch(e){}
   try{
     const g=await SB.from("games").select("*").order("sort").order("id");if(g.data)S.games=g.data;
     const o=await SB.from("offers").select("*").order("sort").order("id");if(o.data)S.offers=o.data;
@@ -293,17 +295,19 @@ function viewScreen(){
 }
 async function load(){
   if(S.sess){
-    const [o,b,p,n,d,gc,tr,rv,rs]=await Promise.all([
+    const [o,b,p,n,d,gc,tr,rv,rs,rf]=await Promise.all([
       SB.from("orders").select("*").order("created_at",{ascending:false}),
       SB.rpc("my_balance"),
-      SB.from("profiles").select("*").eq("id",S.sess.user.id).single(),
+      SB.from("profiles").select(PCOLS).eq("id",S.sess.user.id).single(),
       SB.from("notifications").select("*").order("created_at",{ascending:false}),
       SB.from("deposits").select("id,user_id,email,frz,bonus,phone,status,msg,kind,diamonds,ff_id,saldo,method,price,ref,processing,item,game,order_no,created_at").order("created_at",{ascending:false}),
       SB.from("gift_cards").select("*").order("created_at",{ascending:false}),
       SB.from("transfers").select("id,to_user,amount,created_at").order("created_at",{ascending:false}),
       SB.from("reviews").select("*").order("created_at",{ascending:false}),
-      SB.from("resells").select("*").order("created_at",{ascending:false})]);
+      SB.from("resells").select("*").order("created_at",{ascending:false}),
+      SB.rpc("my_ref_stats")]);
     S.orders=o.data||[];S.bal=b.data||0;S.prof=p.data;S.notes=n.data||[];S.deps=d.data||[];S.cards=gc.data||[];S.tr=tr.data||[];S.rev=rv.data||[];S.rsl=rs.data||[];
+    S.rf=(rf.data&&rf.data[0])||{invited:0,paid:0,earned:0};
     detectNew(S.notes);trackChanges();
     if(isStaff()){
       const c=await SB.rpc("admin_clients");S.clients=c.data||[];
@@ -338,15 +342,15 @@ function render(){
 function maint(){return`<div class="center"><div class="logo-lg" style="margin:0 auto 18px">🛠</div><h1>Web en mantenimiento</h1><p class="mu">Estamos haciendo una actualización. Vuelve en un rato.</p><a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a><button class="alt" id="out" style="margin-top:12px">Salir</button></div>`}
 function verifyView(){
   const p=S.prof||{};
-  const msg=`Hola, acabo de crear mi cuenta en FIRE Zone Recargas.\nNombre: ${p.name||""}\nCorreo: ${p.email||""}\nTeléfono: ${p.phone||""}\nCódigo: ${p.vcode||""}`,e=encodeURIComponent(msg);
-  return`<div class="center" style="padding-top:4vh"><div class="logo-lg" style="margin:0 auto 14px">✅</div><h1>Verifica tu cuenta</h1><p class="mu">Para usar la web, envíanos este mensaje por el medio que prefieras. Te verificamos en cuanto lo recibamos.</p><div class="card" style="text-align:left"><div class="mu">Tu código</div><div class="code">${esc(p.vcode||"")}</div><div class="mu" style="margin-top:10px">Mensaje</div><div style="white-space:pre-line">${esc(msg)}</div></div><a class="abtn" href="${WA}?text=${e}" target="_blank" rel="noopener noreferrer">📲 WhatsApp</a><a class="abtn" style="background:linear-gradient(135deg,#14b8a6,#0f766e)" href="intent://send?phone=${WA_NUM}&text=${e}#Intent;package=com.whatsapp.w4b;scheme=whatsapp;end">💼 WhatsApp Business (Android)</a><a class="abtn" style="background:linear-gradient(135deg,#60a5fa,#2563eb)" href="sms:${SMS_NUM}?&body=${e}">✉️ SMS</a><a class="abtn" style="background:linear-gradient(135deg,#38bdf8,#0284c7)" href="https://t.me/${TG_USER}?text=${e}" target="_blank" rel="noopener noreferrer">✈️ Telegram</a><button class="alt" data-c="${esc(msg)}" style="width:100%;margin-top:10px">📋 Copiar mensaje</button><p class="mu">Si el botón no abre o no escribe el mensaje, cópialo y pégalo tú.</p><button id="recheck" style="width:100%;margin-top:6px">Ya lo envié · Comprobar</button><button class="alt" id="out" style="margin-top:10px">Salir</button></div>`;
+  const msg=`Hola, quiero mi código de verificación para FIRE Zone Recargas.\nNombre: ${p.name||""}\nCorreo: ${p.email||""}\nTeléfono: ${p.phone||""}`,e=encodeURIComponent(msg);
+  return`<div class="center" style="padding-top:4vh"><div class="logo-lg" style="margin:0 auto 14px">✅</div><h1>Verifica tu cuenta</h1><p class="mu">Pídenos tu código de verificación y escríbelo abajo. Te lo damos nosotros.</p><div class="card" style="text-align:left"><b>1. Pide tu código</b><div class="mu" style="margin-bottom:6px">Te abrimos el chat con tus datos ya escritos.</div><a class="abtn" href="${WA}?text=${e}" target="_blank" rel="noopener noreferrer">📲 WhatsApp</a><a class="abtn" style="background:linear-gradient(135deg,#14b8a6,#0f766e)" href="intent://send?phone=${WA_NUM}&text=${e}#Intent;package=com.whatsapp.w4b;scheme=whatsapp;end">💼 WhatsApp Business (Android)</a><a class="abtn" style="background:linear-gradient(135deg,#38bdf8,#0284c7)" href="https://t.me/${TG_USER}?text=${e}" target="_blank" rel="noopener noreferrer">✈️ Telegram</a><button id="reqsms" style="width:100%;margin-top:10px;background:linear-gradient(135deg,#60a5fa,#2563eb)">✉️ Pedir mi código por SMS</button><div class="mu" style="margin-top:6px">Con SMS te lo enviamos nosotros a tu número ${esc(p.phone||"")}.</div><button class="alt" data-c="${esc(msg)}" style="width:100%;margin-top:10px">📋 Copiar mensaje</button></div><div class="card" style="text-align:left"><b>2. Escribe tu código</b><input id="vcode" autocomplete="off" autocapitalize="characters" maxlength="12" placeholder="Código de verificación" value="${esc(S.vcv)}">${fe("vc")}<button id="vcheck" style="width:100%">Verificar cuenta</button></div><button class="alt" id="recheck" style="width:100%">Comprobar si ya me verificaron</button><button class="alt" id="out" style="margin-top:10px">Salir</button></div>`;
 }
 function noteCards(l){return l.length?l.map(x=>`<div class="card"><div>${!x.read?'<span class="tag espera">NUEVO</span> ':""}${esc(x.text)}</div><div class="mu">${fmt(x.created_at)}</div></div>`).join(""):`<p class="mu">No tienes notificaciones.</p>`}
 function bannedView(){return`<div class="center"><div class="logo-lg" style="margin:0 auto 18px">⛔</div><h1>Cuenta suspendida</h1><p class="mu">Ya no puedes usar esta web. Si crees que es un error, escribe por WhatsApp.</p><div style="text-align:left">${noteCards(myNotes())}</div><button class="alt" id="out">Salir</button></div>`}
 function auth(a){
   const su=S.mode==="signup";
   let h=`<div class="center" style="padding-top:6vh"><div class="logo-lg" style="margin:0 auto">🔥</div><div class="brand-t">FIRE Zone Recargas</div><p class="mu" style="margin:0 0 18px">Recarga diamantes de Free Fire con créditos FRZ</p>${!S.open?'<p class="err">🛠 Web en mantenimiento. Solo el personal puede entrar.</p>':""}${getRef()&&su?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
-  h+=(su?`<input id="nm" placeholder="Tu nombre" value="${esc(S.name)}"><input id="ph" type="tel" inputmode="numeric" placeholder="Tu número de WhatsApp (ej.: 5355551234)" value="${esc(S.phone)}">`:"")+`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)">${fe("auth")}<button id="go" style="width:100%;margin-top:6px">${su?"Crear cuenta":"Iniciar sesión"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${su?"Ya tengo cuenta":"Crear cuenta nueva"}</button>${su?'<p class="mu" style="margin-top:10px">Después de crear la cuenta te pediremos enviar un mensaje (WhatsApp, SMS o Telegram) para verificarla.</p>':`<a class="lk" id="forgot" href="${forgotUrl()}" target="_blank" rel="noopener noreferrer">¿Olvidaste tu contraseña? Escríbenos por WhatsApp</a>`}`;
+  h+=(su?`<input id="nm" placeholder="Tu nombre" value="${esc(S.name)}"><input id="ph" type="tel" inputmode="numeric" placeholder="Tu número de WhatsApp (ej.: 5355551234)" value="${esc(S.phone)}">`:"")+`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)">${fe("auth")}<button id="go" style="width:100%;margin-top:6px">${su?"Crear cuenta":"Iniciar sesión"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${su?"Ya tengo cuenta":"Crear cuenta nueva"}</button>${su?'<p class="mu" style="margin-top:10px">Después de crear la cuenta le pedirás tu código de verificación al administrador y lo escribirás en la web.</p>':`<a class="lk" id="forgot" href="${forgotUrl()}" target="_blank" rel="noopener noreferrer">¿Olvidaste tu contraseña? Escríbenos por WhatsApp</a>`}`;
   setView(a,h+`</div></div>`);
   const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
   const em=$("#em");if(em)em.oninput=()=>{S.email=em.value.trim().toLowerCase();const f=$("#forgot");if(f)f.href=forgotUrl()};
@@ -377,9 +381,9 @@ function methRow(sel,attr,withRate){return`<div class="meths">${Object.entries(M
 function payCard(m,price){
   const M=METHODS[m];
   let h=`<div class="card"><div class="row"><b>${M.icon} ${M.name}</b><span class="tag espera">Pendiente</span></div><div class="mu">Importe exacto</div><div class="row"><div><span class="amt">${N(price)}</span> <b style="color:var(--ac)">${M.unit}</b></div><button class="cp" data-c="${N(price)}">Copiar</button></div><div class="mu">Transfiere exactamente este importe.</div><hr>`;
-  if(m==="saldo")h+=`<div class="mu">Número de destino</div><div class="row"><div class="big" style="font-size:28px">${DEST}</div><button class="cp" data-c="${DEST}">Copiar</button></div>`;
-  if(m==="banco")h+=`<div class="mu">Tarjeta Bandec</div><div class="row"><div class="big" style="font-size:22px">${CARD_SHOW}</div><button class="cp" data-c="${CARD_RAW}">Copiar</button></div><div class="mu" style="margin-top:8px">Móvil a confirmar</div><div class="row"><div class="big" style="font-size:28px">${CONFIRM}</div><button class="cp" data-c="${CONFIRM}">Copiar</button></div>`;
-  if(m==="usdt")h+=`<div class="mu">Red</div><div><b>USDT (BEP20)</b></div><div class="mu" style="margin-top:8px">Dirección de billetera</div><div class="code" style="font-size:14px;word-break:break-all">${WALLET}</div><button class="cp" data-c="${WALLET}" style="margin-top:8px">Copiar dirección</button><div class="err" style="margin-top:8px">⚠️ Envía solo USDT por la red BEP20 (BNB Smart Chain). Otra red puede hacerte perder los fondos.</div>`;
+  if(m==="saldo")h+=`<div class="mu">Número de destino</div><div class="row"><div class="big" style="font-size:28px">${esc(PAY.saldo)}</div><button class="cp" data-c="${esc(PAY.saldo)}">Copiar</button></div>`;
+  if(m==="banco")h+=`<div class="mu">Tarjeta Bandec</div><div class="row"><div class="big" style="font-size:22px">${esc(cardShow(PAY.card))}</div><button class="cp" data-c="${esc(PAY.card)}">Copiar</button></div><div class="mu" style="margin-top:8px">Móvil a confirmar</div><div class="row"><div class="big" style="font-size:28px">${esc(PAY.confirm)}</div><button class="cp" data-c="${esc(PAY.confirm)}">Copiar</button></div>`;
+  if(m==="usdt")h+=`<div class="mu">Red</div><div><b>USDT (BEP20)</b></div><div class="mu" style="margin-top:8px">Dirección de billetera</div><div class="code" style="font-size:14px;word-break:break-all">${esc(PAY.wallet)}</div><button class="cp" data-c="${esc(PAY.wallet)}" style="margin-top:8px">Copiar dirección</button><div class="err" style="margin-top:8px">⚠️ Envía solo USDT por la red BEP20 (BNB Smart Chain). Otra red puede hacerte perder los fondos.</div>`;
   return h+`</div>`;
 }
 function identCard(m,o,p){
@@ -439,12 +443,12 @@ function pedidos(){
   return`<h2>Pedidos</h2>`+(items.length?items.map(({t,x})=>{const i=vInfo({t,id:x.id});return`<div class="card row" data-vw="${t}:${x.id}" style="cursor:pointer"><div><b>${esc(i.item)}</b><div class="mu">${esc(i.game)} · #${esc(i.no)}<br>${fmt(i.date)}</div></div>${stTag(x)}</div>`}).join(""):`<p class="mu">Aún no tienes pedidos.</p>`);
 }
 function billetera(){
-  const p=S.prof||{},mn=S.deps.filter(x=>x.user_id===S.sess.user.id&&x.kind==="credito"),vs=S.rsl.filter(r=>r.from_user===S.sess.user.id);
+  const p=S.prof||{},mn=S.deps.filter(x=>x.user_id===S.sess.user.id&&x.kind==="credito"),vs=S.rsl.filter(r=>r.from_user===S.sess.user.id),rf=S.rf||{};
   const link=location.origin+location.pathname+"?ref="+(p.ref_code||"");
-  let h=`<h2>Billetera</h2><div class="card hero"><div class="mu">Cuenta ${p.is_reseller?'<span class="tag aceptado">REVENDEDOR</span>':""}${p.is_helper?'<span class="tag proc">AYUDANTE</span>':""}</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}${p.phone?" · "+esc(p.phone):""}</div><div class="mu" style="margin-top:12px">Saldo</div><div class="big">${N(S.bal)} FRZ</div></div><div class="card">${fe("wal")}<button id="addc" style="width:100%">➕ Añadir créditos</button>${isRes()?`<button class="alt" id="rsb" style="width:100%;margin-top:8px">📤 Transferir créditos</button>`:""}<button class="alt" id="movb" style="width:100%;margin-top:8px">📜 Movimientos</button><button class="alt" id="gifts" style="width:100%;margin-top:8px">🎟 Gift Cards</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana</button><button class="alt" id="cpb" style="width:100%;margin-top:8px">🔑 Cambiar contraseña</button></div>`;
+  let h=`<h2>Billetera</h2><div class="card hero"><div class="mu">Cuenta ${p.is_reseller?'<span class="tag aceptado">REVENDEDOR</span>':""}${p.is_helper?'<span class="tag proc">AYUDANTE</span>':""}</div><div><b>${esc(p.name||"")}</b></div><div class="mu">${esc(p.email||S.sess.user.email)}${p.phone?" · "+esc(p.phone):""}</div><div class="mu" style="margin-top:12px">Saldo</div><div class="big">${N(S.bal)} FRZ</div></div><div class="card">${fe("wal")}<button id="addc" style="width:100%">➕ Añadir créditos</button>${isRes()?`<button class="alt" id="rsb" style="width:100%;margin-top:8px">📤 Transferir créditos</button>`:""}<button class="alt" id="movb" style="width:100%;margin-top:8px">📜 Movimientos</button><button class="alt" id="gifts" style="width:100%;margin-top:8px">🎟 Gift Cards</button><button class="alt" id="inv" style="width:100%;margin-top:8px">🎁 Invita y gana (${+rf.invited||0} invitados)</button><button class="alt" id="cpb" style="width:100%;margin-top:8px">🔑 Cambiar contraseña</button></div>`;
   if(S.rs&&isRes())h+=`<div class="card"><b>📤 Transferir créditos</b><div class="mu">Envía FRZ de tu saldo a otro usuario registrado.</div><input id="rse" type="email" placeholder="Correo del usuario"><input id="rsa" type="number" step="any" min="0.01" placeholder="Cantidad FRZ">${fe("rs")}<button id="rssend" style="width:100%">Transferir</button></div>`;
   if(S.cp)h+=`<div class="card"><b>Cambiar contraseña</b><input id="np" type="password" placeholder="Nueva contraseña (mínimo 6)">${fe("cp")}<button id="cpsave" style="width:100%">Guardar contraseña</button></div>`;
-  if(S.inv)h+=`<div class="card"><b>Invita y gana 5%</b><p class="mu">Comparte tu enlace. Cuando alguien que entre con él recargue créditos, tú ganas el 5% de esa recarga.</p><input readonly value="${esc(link)}" id="rlink"><div class="row"><button class="cp" id="rcopy" data-c="${esc(link)}">Copiar enlace</button><a class="abtn" style="margin:0" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text=${encodeURIComponent("Recarga en FIRE Zone: "+link)}">WhatsApp</a></div></div>`;
+  if(S.inv)h+=`<div class="card"><b>Invita y gana 5%</b><p class="mu">Ganas el 5% del <b>primer depósito de créditos</b> de cada persona que se registre con tu enlace (una sola vez por persona).</p><div class="row"><span class="mu">Personas invitadas</span><b>${+rf.invited||0}</b></div><div class="row"><span class="mu">Ya hicieron su primer depósito</span><b>${+rf.paid||0}</b></div><div class="row"><span class="mu">Ganado</span><b>${N(rf.earned)} FRZ</b></div><input readonly value="${esc(link)}" id="rlink"><div class="row"><button class="cp" id="rcopy" data-c="${esc(link)}">Copiar enlace</button><a class="abtn" style="margin:0" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text=${encodeURIComponent("Recarga en FIRE Zone: "+link)}">WhatsApp</a></div></div>`;
   if(isRes()&&vs.length)h+=`<h2>Mis transferencias</h2>`+vs.slice(0,20).map(r=>`<div class="card row"><div><b>${esc(r.to_name||r.to_email||"Usuario")}</b><div class="mu">${esc(r.to_email||"")} · ${fmt(r.created_at)}</div></div><b>${N(r.amount)} FRZ</b></div>`).join("");
   h+=`<h2>Mis recargas</h2>`+(mn.length?mn.map(x=>`<div class="card row" data-vw="d:${x.id}" style="cursor:pointer"><div><b>${N(x.frz)} FRZ${x.bonus>0?` (+${N(x.bonus)} bono)`:""}</b><div class="mu">#${esc(x.order_no)} · ${px(x)}<br>${fmt(x.created_at)}</div></div>${stTag(x)}</div>`).join(""):`<p class="mu">Aún no tienes recargas.</p>`);
   return h+`<a class="abtn" href="${WA}" target="_blank" rel="noopener noreferrer">¿Necesitas ayuda? WhatsApp</a>`;
@@ -534,6 +538,10 @@ function precios(){
   const rows=[["rate_saldo","1 FRZ en saldo"],["rate_banco","1 FRZ en CUP"],["rate_usdt","1 FRZ en USDT"]];
   return`<div class="card bonus"><div class="mu">Precio del crédito para todos. Los precios de Recarga Directa se editan en cada oferta, en la pestaña Juegos. Un revendedor puede tener precios propios en su ficha.</div></div>`+rows.map(([k,l])=>`<label class="mu">${l}</label><input data-pk="${k}" type="number" step="any" min="0.01" value="${P[k]}">`).join("")+fe("price")+`<button id="psave" style="width:100%;margin-top:8px">Guardar precios</button>`;
 }
+function pagos(){
+  const rows=[["saldo","Número para saldo móvil"],["card","Tarjeta Bandec (solo números)"],["confirm","Móvil a confirmar"],["wallet","Dirección USDT (BEP20)"]];
+  return`<div class="card bonus"><div class="mu">⚠️ Cambia estos datos con cuidado: los clientes los ven al instante y mandan su dinero ahí. Cada cambio queda en el Registro.</div></div>`+rows.map(([k,l])=>`<label class="mu">${l}</label><input data-pay="${k}" value="${esc(k==="card"?cardShow(PAY.card):PAY[k])}">`).join("")+fe("pay")+`<button id="paysave" style="width:100%;margin-top:8px">Guardar datos de pago</button>`;
+}
 function juegos(){
   let h=`<div class="card"><b>➕ Nuevo juego</b><input id="gn" placeholder="Nombre del juego" maxlength="40"><input id="gi" placeholder="Emoji (ej.: 🎮)" maxlength="4"><input id="gl" placeholder="Qué pide el cliente (ej.: ID de jugador)" maxlength="40"><button id="gadd" style="width:100%">Agregar juego</button></div>${fe("gm")}`;
   S.games.forEach(g=>{
@@ -559,7 +567,7 @@ function admin(){
   if(!S.adm)return`<h2>Administración</h2><div class="card"><label>Contraseña del panel</label><input id="apw" type="password" placeholder="Contraseña">${fe("gate")}<button id="unlock" style="width:100%">Entrar</button></div>`;
   const boss=isBoss();
   const cl=S.clients.filter(c=>!c.admin),w=S.orders.filter(o=>o.status==="espera"),dpn=S.deps.filter(x=>x.status==="pendiente"),nvf=cl.filter(c=>!c.verified).length;
-  const tabs=boss?[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"],["ventas","Ventas"],["top","Top"],["juegos","Juegos"],["precios","Precios"],["frz","FRZ"],["gift","Gift"],["opin","Opiniones"],["reg","Registro"],["copia","Copia"]]:[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"]];
+  const tabs=boss?[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"],["ventas","Ventas"],["top","Top"],["juegos","Juegos"],["precios","Precios"],["pagos","Pagos"],["frz","FRZ"],["gift","Gift"],["opin","Opiniones"],["reg","Registro"],["copia","Copia"]]:[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"]];
   if(!tabs.some(t=>t[0]===S.asub))S.asub="clientes";
   let h=boss?`<div class="card ${S.open?"":"lose"}"><div class="row"><div><b>Estado de la web</b><div class="mu">${S.open?"🟢 Encendida: los clientes pueden usarla":"🔴 Apagada: solo el personal puede entrar"}</div></div><button class="${S.open?"no":"ok"}" id="tog">${S.open?"Apagar web":"Encender web"}</button></div>${fe("tog")}</div>`:`<div class="card bonus"><div class="mu">Modo ayudante: puedes atender pedidos, recargas y verificar cuentas.</div></div>`;
   h+=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big" style="font-size:26px">${cl.length}</div></div><div><div class="mu">Sin verificar</div><div class="big" style="font-size:26px">${nvf}</div></div><div><div class="mu">Pedidos</div><div class="big" style="font-size:26px">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big" style="font-size:26px">${dpn.length}</div></div></div>${fe("adm")}`;
@@ -571,6 +579,7 @@ function admin(){
   if(S.asub==="top")h+=topv();
   if(S.asub==="juegos")h+=juegos();
   if(S.asub==="precios")h+=precios();
+  if(S.asub==="pagos")h+=pagos();
   if(S.asub==="opin")h+=opinAdmin();
   if(S.asub==="reg")h+=registro();
   if(S.asub==="copia")h+=copia();
@@ -585,7 +594,10 @@ function admin(){
 function detail(){
   const c=S.clients.find(x=>x.id===S.selc);if(!c)return"";
   const boss=isBoss(),os=S.orders.filter(o=>o.user_id===c.id),t=S.tmp&&S.tmp.id===c.id?S.tmp:null,r=c.rates||{},vs=S.rsl.filter(x=>x.from_user===c.id);
-  let h=`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:12px"><b>${esc(c.name||"(sin nombre)")}</b> ${tags(c)}<div class="mu">${esc(c.email)}<br>Tel: ${esc(c.phone||"-")}<br>Código de verificación: <b>${esc(c.vcode||"-")}</b></div><div class="big">${N(c.balance)} FRZ</div><div class="mu">${c.orders_count} pedidos${c.reseller||+c.sold>0?" · Vendió "+N(c.sold)+" FRZ":""}</div>${fe("ban")}<button class="${c.verified?"alt":"ok"}" data-ver="${c.id}" data-vb="${c.verified?0:1}" style="width:100%;margin-top:10px">${c.verified?"Quitar verificación":"✅ Verificar cliente"}</button>`;
+  const cmsg=`Tu código de verificación de FIRE Zone Recargas es: ${c.vcode||""} . Escríbelo en la web para activar tu cuenta.`;
+  let h=`<button class="alt" id="cback">← Clientes</button><div class="card" style="margin-top:12px"><b>${esc(c.name||"(sin nombre)")}</b> ${tags(c)}<div class="mu">${esc(c.email)}<br>Tel: ${esc(c.phone||"-")}<br>Código de verificación: <b>${esc(c.vcode||"-")}</b></div><div class="big">${N(c.balance)} FRZ</div><div class="mu">${c.orders_count} pedidos${c.reseller||+c.sold>0?" · Vendió "+N(c.sold)+" FRZ":""}</div>${fe("ban")}`;
+  if(!c.verified&&c.phone)h+=`<a class="abtn" target="_blank" rel="noopener noreferrer" href="https://wa.me/${esc(waNum(c.phone))}?text=${encodeURIComponent(cmsg)}">📲 Enviarle el código por WhatsApp</a><a class="abtn" style="background:linear-gradient(135deg,#60a5fa,#2563eb)" href="sms:+${esc(waNum(c.phone))}?&body=${encodeURIComponent(cmsg)}">✉️ Enviarle el código por SMS</a>`;
+  h+=`<button class="${c.verified?"alt":"ok"}" data-ver="${c.id}" data-vb="${c.verified?0:1}" style="width:100%;margin-top:10px">${c.verified?"Quitar verificación":"✅ Verificar cliente (sin código)"}</button>`;
   if(boss)h+=`<button class="alt" data-rol="admin:${c.id}:${c.admin?0:1}" style="width:100%;margin-top:8px">${c.admin?"Quitar administrador":"👑 Hacer administrador"}</button><button class="alt" data-rol="help:${c.id}:${c.helper?0:1}" style="width:100%;margin-top:8px">${c.helper?"Quitar ayudante":"🧑‍💼 Hacer ayudante"}</button><button class="alt" data-rol="res:${c.id}:${c.reseller?0:1}" style="width:100%;margin-top:8px">${c.reseller?"Quitar revendedor":"🏷 Hacer revendedor"}</button><button class="alt" data-rst="${c.id}" style="width:100%;margin-top:8px">🔑 Restablecer contraseña</button><button class="${c.banned?"ok":"no"}" data-ban="${c.id}" data-b="${c.banned?0:1}" style="width:100%;margin-top:8px">${c.banned?"Quitar baneo":"Banear cliente"}</button>`;
   h+=`</div><div class="card"><b>📝 Nota interna</b><div class="mu">Solo la ven el administrador y los ayudantes.</div><textarea id="cnote" rows="2" maxlength="500" placeholder="Ej.: cliente de confianza">${esc(S.cn[c.id]||"")}</textarea>${fe("cn")}<button class="alt" id="cnsave" data-u="${c.id}" style="width:100%">Guardar nota</button></div>`;
   if(boss&&c.reseller)h+=`<div class="card"><b>Precios de revendedor</b><div class="mu">Precio de 1 FRZ para este usuario. Vacío = precio normal (${N(P.rate_saldo)} saldo, ${N(P.rate_banco)} CUP, ${N(P.rate_usdt)} USDT).</div><input id="rrs" type="number" step="any" min="0" placeholder="Saldo" value="${r.saldo??""}"><input id="rrb" type="number" step="any" min="0" placeholder="CUP" value="${r.banco??""}"><input id="rru" type="number" step="any" min="0" placeholder="USDT" value="${r.usdt??""}">${fe("rt")}<button id="rtsave" data-u="${c.id}" style="width:100%">Guardar precios</button></div>`;
@@ -600,6 +612,22 @@ function bind(){
   const all=(s,fn)=>document.querySelectorAll(s).forEach(fn);
   g("#out",()=>SB.auth.signOut());
   g("#recheck",()=>load());
+  const vc=$("#vcode");if(vc)vc.oninput=()=>{S.vcv=vc.value};
+  g("#vcheck",async()=>{
+    const c=gv("#vcode").trim();S.vcv=c;
+    if(c.length<4){setf("vc","Escribe el código que te dimos.");return render()}
+    const {data,error}=await SB.rpc("verify_with_code",{p_code:c});
+    if(error){setf("vc",clean(error.message));return render()}
+    if(data==="ok"){S.vcv="";setf("vc","","✅ ¡Cuenta verificada!");await load()}
+    else{setf("vc",String(data).replace(/^error:/,""));render()}
+  });
+  g("#reqsms",async()=>{
+    const {data,error}=await SB.rpc("request_code",{p_method:"sms"});
+    if(error)setf("vc",clean(error.message));
+    else if(data==="ok")setf("vc","","✅ Solicitud enviada. Te mandaremos un SMS con tu código.");
+    else setf("vc",String(data).replace(/^error:/,""));
+    render();
+  });
   g("#vmin",()=>{S.view=null;S.tab="pedidos";render();window.scrollTo(0,0)});
   g("#vback",()=>{S.view=null;S.tab="pedidos";render();window.scrollTo(0,0)});
   all("[data-vw]",b=>b.onclick=()=>{const [t,id]=b.dataset.vw.split(":");S.view={t,id:+id};render();window.scrollTo(0,0)});
@@ -715,6 +743,17 @@ function bind(){
   g("#cnsave",async()=>{
     const {error}=await SB.rpc("save_note",{p_user:$("#cnsave").dataset.u,p_note:gv("#cnote")});
     setf("cn",error?clean(error.message):"",error?"":"✅ Nota guardada.");await load();
+  });
+  g("#paysave",async()=>{
+    let err="",n=0;
+    for(const i of document.querySelectorAll("[data-pay]")){
+      const k=i.dataset.pay,v=i.value.trim().replace(k==="card"?/\s/g:/^$/,""),old=PAY[k];
+      if(v===old)continue;
+      const {error}=await SB.rpc("set_pay",{p_key:k,p_value:v});
+      if(error){err=clean(error.message);break}n++;
+    }
+    await loadSettings();
+    setf("pay",err,err?"":(n?`✅ Se guardaron ${n} dato(s) de pago.`:"No hay cambios."));render();
   });
   g("#psave",async()=>{
     let err="",n=0;
