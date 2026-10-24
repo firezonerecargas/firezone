@@ -52,6 +52,15 @@ nav button.on .ni{transform:translateY(-2px) scale(1.18)}
 nav .bd{position:absolute;top:-5px;right:-9px;min-width:17px;height:17px;border-radius:9px;background:var(--no);color:#fff;font-size:10px;font-style:normal;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;animation:pop .4s}
 .wafab{position:fixed;right:14px;bottom:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#34d399,#16a34a);display:flex;align-items:center;justify-content:center;font-size:26px;text-decoration:none;box-shadow:0 8px 22px rgba(22,163,74,.45);z-index:20;animation:float 3.2s ease-in-out infinite}
 nav:not([hidden])~.wafab{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+.botfab{position:fixed;left:14px;bottom:16px;width:54px;height:54px;border-radius:50%;padding:0;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:25px;box-shadow:0 8px 22px rgba(255,70,70,.4);z-index:20;animation:float 3.2s ease-in-out .6s infinite}
+.botfab[hidden]{display:none}
+nav:not([hidden])~.botfab{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+.chat{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.bub{max-width:90%;padding:11px 14px;border-radius:16px;font-size:15px;animation:up .3s both}
+.bub.b{align-self:flex-start;background:var(--card);border:1px solid var(--bd)}
+.bub.u{align-self:flex-end;background:var(--grad);color:#fff}
+.flash{animation:flash 1.6s ease-out}
+.live{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--no);margin-right:7px;animation:pulse 1.1s ease-in-out infinite}
 .ff{width:100%;padding:24px;font-size:20px;border-radius:20px;background:var(--grad);box-shadow:0 12px 32px rgba(255,70,70,.32)}
 .ff::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);animation:shine 3.4s ease-in-out infinite}
 .err{color:var(--no);font-size:14px}.ok2{color:var(--ok);font-size:14px}.center{text-align:center;padding-top:10vh}
@@ -113,8 +122,9 @@ hr{border:0;border-top:1px solid var(--bd);margin:12px 0}
 @keyframes navin{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
 @keyframes dot{0%,80%,100%{transform:scale(.55);opacity:.4}40%{transform:scale(1);opacity:1}}
 @keyframes rip{to{transform:scale(2.6);opacity:0}}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--ac)}100%{box-shadow:var(--shadow)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-</style></head><body><main id="app"><div class="splash"><div class="logo-lg">🔥</div><div class="dots"><i></i><i></i><i></i></div></div></main><nav id="nav" hidden></nav><a class="wafab" href="https://wa.me/5353975065" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a>
+</style></head><body><main id="app"><div class="splash"><div class="logo-lg">🔥</div><div class="dots"><i></i><i></i><i></i></div></div></main><nav id="nav" hidden></nav><a class="wafab" href="https://wa.me/5353975065" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a><button class="botfab" id="botfab" aria-label="Asistente" hidden>🤖</button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const SB_URL="https://uvkqfghbooihwfhbrfhb.supabase.co";
@@ -147,7 +157,7 @@ const cardShow=s=>String(s||"").replace(/\s/g,"").replace(/(\d{4})(?=\d)/g,"$1 "
 const SB=supabase.createClient(SB_URL,SB_KEY);
 (function(){const q=new URLSearchParams(location.search).get("ref");if(q){try{localStorage.setItem("frz_ref",q.toLowerCase().slice(0,16))}catch(e){}}})();
 const getRef=()=>{try{return localStorage.getItem("frz_ref")||""}catch(e){return ""}};
-const S={sess:null,prof:null,open:true,games:[],offers:[],mode:getRef()?"signup":"login",email:"",name:"",phone:"",tab:"ofertas",game:null,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],tr:[],cards:[],rev:[],rsl:[],cn:{},aud:[],rf:{invited:0,paid:0,earned:0},vcv:"",newCodes:[],proofs:{},bal:0,notes:[],seen:null,stat:null,view:null,clients:[],adm:false,asub:"clientes",selc:null,tmp:null,cp:false,rs:false,dep:null,gv:false,mov:false,faq:false,rvd:{stars:5},q:"",fs:"all",inv:false,f:{},_vk:"",_cf:""};
+const S={sess:null,prof:null,open:true,games:[],offers:[],mode:getRef()?"signup":"login",email:"",name:"",phone:"",tab:"ofertas",game:null,method:null,sel:null,dm:"saldo",dr:null,orders:[],deps:[],tr:[],cards:[],rev:[],rsl:[],cn:{},aud:[],rf:{invited:0,paid:0,earned:0},vcv:"",newCodes:[],proofs:{},bal:0,notes:[],seen:null,stat:null,view:null,clients:[],adm:false,asub:"clientes",selc:null,tmp:null,cp:false,rs:false,dep:null,gv:false,mov:false,faq:false,rvd:{stars:5},q:"",fs:"all",inv:false,f:{},_vk:"",_cf:"",auto:false,lvSeen:null,lvSnd:false,bot:false,bm:[]};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=t=>new Date(t).toLocaleString("es");
@@ -180,15 +190,19 @@ const isBoss=()=>!!(S.prof&&S.prof.is_admin);
 const isStaff=()=>!!(S.prof&&(S.prof.is_admin||S.prof.is_helper));
 const isRes=()=>!!(S.prof&&(S.prof.is_reseller||S.prof.is_admin));
 const nv=v=>{const n=parseFloat(String(v).replace(",","."));return n>0?n:null};
-const resetNav=()=>{S.game=null;S.method=null;S.sel=null;S.dr=null;S.selc=null;S.tmp=null;S.cp=false;S.rs=false;S.dep=null;S.gv=false;S.mov=false;S.faq=false;S.view=null;S.q="";S.fs="all";S.f={}};
+const resetNav=()=>{S.game=null;S.method=null;S.sel=null;S.dr=null;S.selc=null;S.tmp=null;S.cp=false;S.rs=false;S.dep=null;S.gv=false;S.mov=false;S.faq=false;S.view=null;S.bot=false;S.lvSeen=null;S.q="";S.fs="all";S.f={}};
 const forgotUrl=()=>WA+"?text="+encodeURIComponent("Hola, olvidé mi contraseña de FIRE Zone Recargas. Mi correo es: "+(S.email||"(escribe tu correo aquí)"));
 const stars=n=>"★".repeat(n)+"☆".repeat(5-n);
 const csv=rows=>"\ufeff"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(";")).join("\r\n");
 function dl(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+/* ---------- anti doble toque ---------- */
+const AF=(async()=>{}).constructor,BUSY=new Map();
+function guard(key,fn){return async function(ev){const t=BUSY.get(key);if(t&&(t===1||Date.now()-t<1500))return;BUSY.set(key,1);const el=ev&&ev.currentTarget;if(el)el.style.opacity=".55";try{return await fn.call(this,ev)}finally{BUSY.set(key,Date.now());if(el&&el.isConnected)el.style.opacity=""}}}
+function gb(s,fn){const e=$(s);if(e)e.onclick=fn.constructor===AF?guard(s,fn):fn}
 /* ---------- efectos ---------- */
 function setView(a,html){
   const vi=S.view?vInfo(S.view):null;
-  const k=[!!S.sess,S.mode,S.tab,S.game,S.method,S.sel,S.dr&&S.dr.step,S.dep&&S.dep.step,S.gv,S.mov,S.faq,S.view?S.view.t+S.view.id+(vi?vi.status:""):"",S.asub,S.selc,S.adm].join("|");
+  const k=[!!S.sess,S.mode,S.tab,S.game,S.method,S.sel,S.dr&&S.dr.step,S.dep&&S.dep.step,S.gv,S.mov,S.faq,S.bot,S.view?S.view.t+S.view.id+(vi?vi.status:""):"",S.asub,S.selc,S.adm].join("|");
   a.classList.toggle("anim",k!==S._vk);S._vk=k;a.innerHTML=html;
 }
 document.addEventListener("pointerdown",e=>{
@@ -216,6 +230,7 @@ function ping(t){
   try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
   try{if("Notification" in window&&Notification.permission==="granted")new Notification("FIRE Zone Recargas",{body:t})}catch(e){}
 }
+function beep(){try{const c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.15;o.start();o.stop(c.currentTime+.18)}catch(e){}}
 function detectNew(list){
   const mine=list.filter(x=>x.user_id===S.sess.user.id);
   if(S.seen){
@@ -258,8 +273,9 @@ async function init(){
     if(!S.sess)return;
     await pollNotes();
     const ae=document.activeElement&&document.activeElement.tagName;
-    if(!S.dep&&!S.dr&&ae!=="INPUT"&&ae!=="TEXTAREA")load();
+    if(!S.dep&&!S.dr&&!S.bot&&ae!=="INPUT"&&ae!=="TEXTAREA")load();
   },10000);
+  setInterval(()=>{if(S.sess&&isStaff()&&S.tab==="admin"&&S.asub==="live"&&S.adm&&!S.view&&!S.bot)load()},4000);
 }
 /* ---------- seguimiento de pedidos ---------- */
 const mine=()=>[...S.orders.filter(o=>o.user_id===S.sess.user.id).map(x=>({t:"o",x})),...S.deps.filter(x=>x.user_id===S.sess.user.id).map(x=>({t:"d",x}))].sort((a,b)=>new Date(b.x.created_at)-new Date(a.x.created_at));
@@ -312,19 +328,22 @@ async function load(){
     if(isStaff()){
       const c=await SB.rpc("admin_clients");S.clients=c.data||[];
       const nt=await SB.from("client_notes").select("*");S.cn={};(nt.data||[]).forEach(x=>{S.cn[x.user_id]=x.note});
+      try{const ac=await SB.from("auto_cfg").select("value").eq("key","nl_auto").maybeSingle();S.auto=!!(ac.data&&ac.data.value==="true")}catch(e){}
     }
     if(isBoss()){const au=await SB.from("audit_log").select("*").order("created_at",{ascending:false}).limit(100);S.aud=au.data||[]}
   }
   render();
 }
 function render(){
-  const a=$("#app"),n=$("#nav");
+  const a=$("#app"),n=$("#nav"),bf=$("#botfab");
+  if(bf)bf.hidden=!S.sess||!!S.view||S.bot;
   if(!S.sess){n.hidden=true;return auth(a)}
   const st=isStaff();
   if(!S.open&&!st){n.hidden=true;setView(a,maint());bind();return}
   if(S.prof&&S.prof.banned&&!st){n.hidden=true;setView(a,bannedView());bind();return}
-  if(S.prof&&!S.prof.verified&&!st){n.hidden=true;setView(a,verifyView());bind();return}
+  if(S.prof&&!S.prof.verified&&!st&&!S.bot){n.hidden=true;setView(a,verifyView());bind();return}
   if(S.view){n.hidden=true;setView(a,viewScreen());bind();return}
+  if(S.bot){n.hidden=true;setView(a,botView());bind();return}
   n.hidden=false;buildNav();
   let v;
   if(S.dep&&S.tab==="billetera")v=depView();
@@ -352,10 +371,9 @@ function auth(a){
   let h=`<div class="center" style="padding-top:6vh"><div class="logo-lg" style="margin:0 auto">🔥</div><div class="brand-t">FIRE Zone Recargas</div><p class="mu" style="margin:0 0 18px">Recarga diamantes de Free Fire con créditos FRZ</p>${!S.open?'<p class="err">🛠 Web en mantenimiento. Solo el personal puede entrar.</p>':""}${getRef()&&su?'<p class="ok2">🎁 Te invitó un amigo</p>':""}<div class="card" style="text-align:left">`;
   h+=(su?`<input id="nm" placeholder="Tu nombre" value="${esc(S.name)}"><input id="ph" type="tel" inputmode="numeric" placeholder="Tu número de WhatsApp (ej.: 5355551234)" value="${esc(S.phone)}">`:"")+`<input id="em" type="email" placeholder="Tu Gmail" value="${esc(S.email)}"><input id="pw" type="password" placeholder="Contraseña (mínimo 6)">${fe("auth")}<button id="go" style="width:100%;margin-top:6px">${su?"Crear cuenta":"Iniciar sesión"}</button><button class="alt" id="sw" style="width:100%;margin-top:8px">${su?"Ya tengo cuenta":"Crear cuenta nueva"}</button>${su?'<p class="mu" style="margin-top:10px">Después de crear la cuenta le pedirás tu código de verificación al administrador y lo escribirás en la web.</p>':`<a class="lk" id="forgot" href="${forgotUrl()}" target="_blank" rel="noopener noreferrer">¿Olvidaste tu contraseña? Escríbenos por WhatsApp</a>`}`;
   setView(a,h+`</div></div>`);
-  const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
   const em=$("#em");if(em)em.oninput=()=>{S.email=em.value.trim().toLowerCase();const f=$("#forgot");if(f)f.href=forgotUrl()};
-  g("#sw",()=>{S.mode=su?"login":"signup";S.f={};render()});
-  g("#go",async()=>{
+  gb("#sw",()=>{S.mode=su?"login":"signup";S.f={};render()});
+  gb("#go",async()=>{
     const e=$("#em").value.trim().toLowerCase(),pw=$("#pw").value,nm=su?$("#nm").value.trim():"",ph=su?$("#ph").value.replace(/\D/g,""):"";S.email=e;S.name=nm;S.phone=su?$("#ph").value.trim():S.phone;
     if(su&&nm.length<2){setf("auth","Escribe tu nombre.");return render()}
     if(su&&!/^\d{8,15}$/.test(ph)){setf("auth","Escribe tu número de WhatsApp (de 8 a 15 dígitos).");return render()}
@@ -481,6 +499,65 @@ function avisos(){
   const can=("Notification" in window)&&Notification.permission==="default";
   return`<h2>Notificaciones</h2>${can?`<button class="alt" id="npush" style="width:100%;margin-bottom:10px">🔔 Activar avisos del navegador</button>`:""}<p class="mu">Se revisan cada 10 segundos mientras la web esté abierta.</p>`+noteCards(myNotes());
 }
+/* ---------- asistente (bot tutorial) ---------- */
+const norm=s=>String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const rates=()=>["saldo","banco","usdt"].map(rtTxt).join(" · ");
+const KB=[
+ {s:1,k:["automatic","next level","api"],a:()=>"<b>Recargas automáticas:</b> en Admin → ● Vivo hay un interruptor para activarlas o desactivarlas. Todavía no están conectadas con Next Level, así que hoy todo se atiende manualmente. Cuando se conecte, los pedidos por créditos se enviarán solos y, si algo falla, quedarán En proceso y te avisamos por Telegram."},
+ {s:1,k:["vivo","en vivo","tiempo real"],a:()=>"<b>Admin → ● Vivo:</b> muestra pedidos, recargas y gift cards en tiempo real (cada 4 segundos). Lo que lleva más de 10 minutos esperando sale en rojo. El botón <b>Abrir</b> te lleva a ese pedido y el interruptor 🔊 avisa con un sonido."},
+ {s:1,k:["atender","acept","marcar","como rechazo","rechazar un"],a:()=>"<b>Atender pedidos:</b> Admin → Pedidos o Recargas (o busca el #número). Puedes <b>Marcar en proceso</b>, <b>ACEPTAR</b> o <b>RECHAZAR</b> (con mensaje o una respuesta rápida). El cliente ve el resultado en pantalla completa y le llega un aviso. Revisa siempre el comprobante antes de aceptar."},
+ {s:1,k:["dar el codigo","codigo al cliente","verificar a","verificar clientes","verificar cliente"],a:()=>"<b>Verificar clientes:</b> al crear su cuenta te llega por Telegram su código. Cuando te escriba, dáselo (Admin → Clientes → Ver tiene botones para enviarlo por WhatsApp o SMS). Él lo escribe en la web y queda verificado."},
+ {s:1,k:["precios","precio","datos de pago","cambiar tarjeta","cambiar numero","billetera usdt","pagos"],a:()=>"<b>Precios y pagos:</b> Admin → Precios cambia lo que cuesta 1 FRZ. Admin → Pagos cambia el número de saldo, la tarjeta, el móvil a confirmar y la billetera USDT; los clientes lo ven al instante y el cambio queda en el Registro."},
+ {s:1,k:["juegos","juego nuevo","oferta nueva","agotado","agregar"],a:()=>"<b>Juegos y ofertas:</b> Admin → Juegos. Crea juegos, y dentro de cada uno ofertas con precio en FRZ y por método de pago (vacío = no disponible). Cada oferta se puede guardar, ocultar, borrar o marcar como agotada."},
+ {s:1,k:["apagar","encender","mantenimiento"],a:()=>"<b>Apagar la web:</b> en Admin, arriba, el botón Apagar web deja a los clientes en pantalla de mantenimiento y solo el personal puede entrar. Tiene también protección en la base de datos."},
+ {s:1,k:["roles","rol","ayudante","administrador","revendedor"],a:()=>"<b>Roles:</b> en la ficha del cliente puedes hacerlo Administrador (todo), Ayudante (solo atiende pedidos, recargas y verifica cuentas) o Revendedor (transfiere créditos y puede tener precios propios)."},
+ {s:1,k:["copia","respaldo","csv","excel","registro","actividad","backup"],a:()=>"<b>Copia y registro:</b> Admin → Copia descarga un respaldo (JSON) y tablas CSV para Excel. Admin → Registro muestra quién hizo cada acción importante."},
+ {s:1,k:["panel","admin"],a:()=>"<b>Panel Admin:</b> pestañas Vivo, Clientes, Recargas, Pedidos, Ventas, Top, Juegos, Precios, Pagos, FRZ, Gift, Opiniones, Registro y Copia. Los ayudantes solo ven Vivo, Clientes, Recargas y Pedidos."},
+ {k:["recarg","diamante","comprar","oferta","free fire","juego"],a:()=>"<b>Cómo recargar:</b><br>1) Ve a Ofertas y elige el juego.<br>2) Elige <b>Recarga Directa</b> (pagas con saldo, transferencia o USDT) o <b>Por Créditos</b> (pagas con tus FRZ).<br>3) Elige la oferta, escribe tu ID y paga.<br>4) Adjunta el comprobante y toca Enviar. Verás ⏳ EN PROCESO; puede tardar hasta 10 minutos."},
+ {k:["credito","frz","billetera","anadir","añadir","bono"],a:()=>`<b>Créditos FRZ:</b> en Billetera → Añadir créditos eliges el monto (mínimo 1, admite decimales), el método y envías el comprobante. Precios: ${rates()}. Tu primer depósito recibe +3% extra.`},
+ {k:["metodo","pago","pagar","transfer","usdt","saldo movil","tarjeta","bandec"],a:()=>`<b>Métodos de pago:</b> saldo móvil, transferencia bancaria y USDT (red BEP20). Los datos para pagar aparecen en la pantalla de pago con botón de copiar. Transfiere siempre el <b>importe exacto</b> y adjunta el comprobante. En USDT usa solo la red BEP20.`},
+ {k:["pedido","estado","proceso","tarda","demora","cuanto","numero"],a:()=>"<b>Tus pedidos:</b> cada uno tiene un número (#1001...). Pasa de <i>En proceso</i> a <i>Aceptado</i> o <i>Rechazado</i> y puede tardar hasta 10 minutos. Puedes minimizar la pantalla y volver a abrirla tocando el pedido en la pestaña Pedidos. Te llega un aviso en Avisos."},
+ {k:["verific","activar","cuenta nueva","codigo"],a:()=>"<b>Verificar tu cuenta:</b> pídenos tu código por WhatsApp, Telegram o SMS. Te lo damos nosotros; lo escribes en la web y tu cuenta queda activa. Si no te contestan, vuelve a intentar en un rato."},
+ {k:["referid","invita","invitar","enlace","ganar"],a:()=>"<b>Invita y gana:</b> en Billetera → Invita y gana copias tu enlace. Ganas el <b>5% del primer depósito de créditos</b> de cada persona que se registre con él (una sola vez por persona). Ahí mismo ves cuántos invitaste y cuánto ganaste."},
+ {k:["gift","regalo","canjear"],a:()=>"<b>Gift cards:</b> valen lo mismo que el crédito FRZ. En Billetera → Gift Cards puedes canjear un código o comprar una (pagas y recibes el código para canjear o regalar). Cada código se usa una sola vez."},
+ {k:["error","mal","incorrecto","rechaz","no llego","problema","reembolso","devol"],a:()=>"<b>Si hay un problema:</b> si pusiste mal tu ID, escríbenos por WhatsApp cuanto antes con tu número de pedido. Si rechazan un pedido pagado con créditos, los FRZ vuelven solos a tu billetera. Si pagaste con dinero real, escríbenos con tu comprobante."},
+ {k:["contrasena","clave","olvide","password"],a:()=>"<b>Contraseña:</b> para cambiarla ve a Billetera → Cambiar contraseña. Si la olvidaste, en la pantalla de inicio toca ¿Olvidaste tu contraseña? y nos escribes; el administrador te da una temporal."},
+ {k:["opinion","resena","estrella","calific"],a:()=>"<b>Opiniones:</b> cuando tengas una compra aceptada, puedes dejar tu opinión (1 a 5 estrellas) en la pestaña Ofertas. Se muestra cuando el administrador la aprueba."},
+ {k:["revend","transferir","distribuidor"],a:()=>"<b>Revendedores:</b> son cuentas autorizadas por el administrador. Pueden transferir créditos a otros usuarios desde Billetera → Transferir créditos y tener precios propios."},
+ {k:["soporte","ayuda","contacto","whatsapp","humano","hablar"],a:()=>`<b>Soporte:</b> toca el botón verde de WhatsApp de la esquina, o <a href="${WA}" target="_blank" rel="noopener noreferrer" style="color:var(--ac)">abre el chat aquí</a>.`}
+];
+function botAnswer(q){
+  const n=norm(q);let best=null,bs=0;
+  KB.forEach(e=>{if(e.s&&!isStaff())return;const sc=e.k.reduce((a,k)=>a+(n.includes(norm(k))?1:0),0);if(sc>bs){bs=sc;best=e}});
+  return best?best.a():`No encontré una respuesta exacta 🤔. Prueba con otra palabra o elige un tema abajo. También puedes <a href="${WA}" target="_blank" rel="noopener noreferrer" style="color:var(--ac)">escribirnos por WhatsApp</a>.`;
+}
+function botView(){
+  const chips=["¿Cómo recargo?","Métodos de pago","Mis pedidos","Verificar cuenta","Referidos","Gift cards","Contraseña","Soporte",...(isStaff()?["Atender pedidos","Panel en vivo","Automáticas","Precios y pagos","Juegos y ofertas","Roles"]:[])];
+  return`<div class="top"><div class="brand"><span class="logo">🤖</span><div><b>Asistente</b><small>Tutorial de la web</small></div></div><button class="alt" id="bclose" style="padding:8px 14px">✕ Cerrar</button></div><div class="chat">${S.bm.map(m=>`<div class="bub ${m.r}">${m.t}</div>`).join("")}</div><div class="qr">${chips.map(c=>`<button class="alt" data-bt="${esc(c)}">${esc(c)}</button>`).join("")}</div><div class="row" style="gap:8px"><input id="bq" placeholder="Escribe tu pregunta..." maxlength="120" autocomplete="off"><button id="bsend" style="padding:13px 16px">➤</button></div>`;
+}
+function botAsk(q){
+  q=String(q||"").trim();if(!q)return;
+  S.bm.push({r:"u",t:esc(q)},{r:"b",t:botAnswer(q)});if(S.bm.length>40)S.bm=S.bm.slice(-40);
+  render();setTimeout(()=>{window.scrollTo(0,document.body.scrollHeight);const i=$("#bq");if(i)i.focus()},30);
+}
+/* ---------- en vivo ---------- */
+const ago=t=>{const m=Math.floor((Date.now()-new Date(t))/60000);return m<1?"ahora":m<60?`hace ${m} min`:m<1440?`hace ${Math.floor(m/60)} h`:`hace ${Math.floor(m/1440)} d`};
+function liveItems(){
+  const a=[];
+  S.orders.forEach(o=>a.push({k:"o"+o.id,d:o.created_at,ic:"💳",no:o.order_no,ti:`${it(o)} · ${N(o.frz)} FRZ`,who:cm(o.user_id).name||o.email,x:o,sub:"pedidos"}));
+  S.deps.forEach(x=>a.push({k:"d"+x.id,d:x.created_at,ic:x.kind==="directo"?"⚡":x.kind==="gift"?"🎟":"➕",no:x.order_no,ti:x.kind==="directo"?`${x.game||""} · ${it(x)} · ${px(x)}`:`${x.kind==="gift"?"Gift card ":"Recarga "}${N(x.frz)} FRZ · ${px(x)}`,who:cm(x.user_id).name||x.email,x,sub:"recargas"}));
+  S.cards.filter(c=>c.status==="canjeada"&&c.redeemed_at).forEach(c=>a.push({k:"g"+c.id,d:c.redeemed_at,ic:"🎁",no:"",ti:`Gift card canjeada · ${N(c.frz)} FRZ`,who:cm(c.redeemed_by).name||"",x:null,sub:""}));
+  return a.sort((p,q)=>new Date(q.d)-new Date(p.d)).slice(0,40);
+}
+function liveView(){
+  const its=liveItems(),first=!S.lvSeen,fresh=first?[]:its.filter(i=>!S.lvSeen.has(i.k));
+  if(S.lvSnd&&fresh.some(i=>i.x&&isPend(i.x)))beep();
+  S.lvSeen=new Set(its.map(i=>i.k));
+  const fk=new Set(fresh.map(i=>i.k)),pO=S.orders.filter(isPend),pD=S.deps.filter(isPend),old=[...pO,...pD].filter(x=>Date.now()-new Date(x.created_at)>10*60000).length;
+  let h=`<div class="card ${S.auto?"win":""}"><div class="row"><div><b>🤖 Recargas automáticas (Next Level)</b><div class="mu">${S.auto?"Activadas":"Desactivadas"} · Aún sin conexión con Next Level: todo se atiende a mano hasta conectarlo.</div></div>${isBoss()?`<button class="${S.auto?"no":"ok"}" id="autotog">${S.auto?"Desactivar":"Activar"}</button>`:""}</div>${fe("auto")}</div>`;
+  h+=`<div class="row"><b><span class="live"></span>EN VIVO</b><button class="${S.lvSnd?"":"alt"}" id="lvsnd" style="padding:8px 12px">${S.lvSnd?"🔊 Sonido activado":"🔈 Activar sonido"}</button></div><div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Pedidos pendientes</div><div class="big" style="font-size:26px">${pO.length}</div></div><div><div class="mu">Recargas pendientes</div><div class="big" style="font-size:26px">${pD.length}</div></div><div><div class="mu">Más de 10 min</div><div class="big" style="font-size:26px;color:${old?"var(--no)":"inherit"}">${old}</div></div></div>`;
+  return h+(its.length?its.map(i=>{const late=i.x&&isPend(i.x)&&Date.now()-new Date(i.d)>10*60000;return`<div class="card ${fk.has(i.k)?"flash":""}" ${late?'style="border-color:var(--no)"':""}><div class="row"><b>${i.ic} ${i.no?"#"+esc(i.no)+" · ":""}${esc(i.ti)}</b>${i.x?stTag(i.x):'<span class="tag canjeada">Canjeada</span>'}</div><div class="mu">${esc(i.who)} · ${ago(i.d)}${late?' · <b style="color:var(--no)">⏰ +10 min esperando</b>':""}</div>${i.no?`<button class="alt" data-lv="${i.sub}|${i.no}" style="padding:7px 12px;margin-top:6px;font-size:13px">Abrir</button>`:""}</div>`}).join(""):`<p class="mu">Aún no hay movimientos.</p>`);
+}
 /* ---------- admin ---------- */
 const qrow=(k,id)=>`<div class="qr">${QR.map(t=>`<button class="alt" data-qr="${k}|${id}|${esc(t)}">${esc(t)}</button>`).join("")}</div>`;
 function mini(o){return`<div class="card"><div class="row"><b>#${esc(o.order_no)} · ${esc(it(o))} · ${N(o.frz)} FRZ</b>${stTag(o)}</div><div class="mu">ID: ${esc(o.ff_id)} · ${fmt(o.created_at)}</div></div>`}
@@ -567,11 +644,12 @@ function admin(){
   if(!S.adm)return`<h2>Administración</h2><div class="card"><label>Contraseña del panel</label><input id="apw" type="password" placeholder="Contraseña">${fe("gate")}<button id="unlock" style="width:100%">Entrar</button></div>`;
   const boss=isBoss();
   const cl=S.clients.filter(c=>!c.admin),w=S.orders.filter(o=>o.status==="espera"),dpn=S.deps.filter(x=>x.status==="pendiente"),nvf=cl.filter(c=>!c.verified).length;
-  const tabs=boss?[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"],["ventas","Ventas"],["top","Top"],["juegos","Juegos"],["precios","Precios"],["pagos","Pagos"],["frz","FRZ"],["gift","Gift"],["opin","Opiniones"],["reg","Registro"],["copia","Copia"]]:[["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"]];
+  const tabs=boss?[["live","● Vivo"],["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"],["ventas","Ventas"],["top","Top"],["juegos","Juegos"],["precios","Precios"],["pagos","Pagos"],["frz","FRZ"],["gift","Gift"],["opin","Opiniones"],["reg","Registro"],["copia","Copia"]]:[["live","● Vivo"],["clientes","Clientes"],["recargas","Recargas"],["pedidos","Pedidos"]];
   if(!tabs.some(t=>t[0]===S.asub))S.asub="clientes";
   let h=boss?`<div class="card ${S.open?"":"lose"}"><div class="row"><div><b>Estado de la web</b><div class="mu">${S.open?"🟢 Encendida: los clientes pueden usarla":"🔴 Apagada: solo el personal puede entrar"}</div></div><button class="${S.open?"no":"ok"}" id="tog">${S.open?"Apagar web":"Encender web"}</button></div>${fe("tog")}</div>`:`<div class="card bonus"><div class="mu">Modo ayudante: puedes atender pedidos, recargas y verificar cuentas.</div></div>`;
   h+=`<div class="card" style="display:flex;justify-content:space-around;text-align:center"><div><div class="mu">Clientes</div><div class="big" style="font-size:26px">${cl.length}</div></div><div><div class="mu">Sin verificar</div><div class="big" style="font-size:26px">${nvf}</div></div><div><div class="mu">Pedidos</div><div class="big" style="font-size:26px">${w.length}</div></div><div><div class="mu">Recargas</div><div class="big" style="font-size:26px">${dpn.length}</div></div></div>${fe("adm")}`;
   h+=`<div class="row" style="gap:5px;margin-bottom:12px;flex-wrap:wrap">${tabs.map(([k,l])=>`<button class="${S.asub===k?"":"alt"}" data-s="${k}" style="flex:1 1 22%;padding:10px 0;font-size:12px">${l}</button>`).join("")}</div>`;
+  if(S.asub==="live")h+=liveView();
   if(S.asub==="clientes")h+=S.selc?detail():fbar(false)+`<div id="alist">${adminList()}</div>`;
   if(S.asub==="recargas"||S.asub==="pedidos")h+=fbar(true)+`<div id="alist">${adminList()}</div>`;
   if(!boss)return h;
@@ -608,10 +686,23 @@ function detail(){
 const gv=sel=>{const e=$(sel);return e?e.value:""};
 const rpcDo=async(fn,args,key)=>{const {error}=await SB.rpc(fn,args);setf(key,error?clean(error.message):"");await loadSettings();await load()};
 function bind(){
-  const g=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
-  const all=(s,fn)=>document.querySelectorAll(s).forEach(fn);
+  const g=gb;
+  const all=(s,fn)=>document.querySelectorAll(s).forEach(b=>{fn(b);const h=b.onclick;if(h&&h.constructor===AF)b.onclick=guard(s+JSON.stringify(b.dataset),h)});
   g("#out",()=>SB.auth.signOut());
   g("#recheck",()=>load());
+  g("#botfab",()=>{S.bot=true;if(!S.bm.length)S.bm.push({r:"b",t:"¡Hola! 👋 Soy el asistente de FIRE Zone. Elige un tema o escríbeme tu duda."});render();window.scrollTo(0,0)});
+  g("#bclose",()=>{S.bot=false;render();window.scrollTo(0,0)});
+  g("#bsend",()=>botAsk(gv("#bq")));
+  const bq=$("#bq");if(bq)bq.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();botAsk(bq.value)}};
+  all("[data-bt]",b=>b.onclick=()=>botAsk(b.dataset.bt));
+  all("[data-lv]",b=>b.onclick=()=>{const [sub,no]=b.dataset.lv.split("|");S.asub=sub;S.q=no;S.fs="all";S.selc=null;S.lvSeen=null;render();window.scrollTo(0,0)});
+  g("#lvsnd",()=>{S.lvSnd=!S.lvSnd;if(S.lvSnd)beep();render()});
+  g("#autotog",async()=>{
+    const next=!S.auto;
+    if(next&&!confirm("Esto solo deja activado el interruptor. Aún no hay conexión con Next Level, así que no cambia nada hasta conectarla. ¿Continuar?"))return;
+    const {error}=await SB.rpc("set_auto",{p_on:next});
+    setf("auto",error?clean(error.message):"");await load();
+  });
   const vc=$("#vcode");if(vc)vc.oninput=()=>{S.vcv=vc.value};
   g("#vcheck",async()=>{
     const c=gv("#vcode").trim();S.vcv=c;
@@ -734,7 +825,7 @@ function bind(){
     setf("tog",error?clean(error.message):"");
     await loadSettings();render();
   });
-  all("[data-s]",b=>b.onclick=()=>{S.asub=b.dataset.s;S.selc=null;S.tmp=null;S.q="";S.fs="all";S.f={};render()});
+  all("[data-s]",b=>b.onclick=()=>{S.asub=b.dataset.s;S.selc=null;S.tmp=null;S.q="";S.fs="all";S.lvSeen=null;S.f={};render()});
   all("[data-v]",b=>b.onclick=()=>{S.selc=b.dataset.v;S.tmp=null;S.f={};render()});
   g("#cback",()=>{S.selc=null;S.tmp=null;S.f={};render()});
   const aq=$("#aq");
@@ -780,107 +871,4 @@ function bind(){
   all("[data-gtog]",b=>b.onclick=async()=>{const id=+b.dataset.gtog,x=G(id);await rpcDo("save_game",{p_id:id,p_name:x.name,p_icon:x.icon,p_idlabel:x.id_label,p_active:!x.active},"gm")});
   all("[data-gdel]",b=>b.onclick=async()=>{if(!confirm("¿Borrar este juego y todas sus ofertas?"))return;await rpcDo("delete_game",{p_id:+b.dataset.gdel},"gm")});
   const of=(id,k)=>{const e=document.querySelector(`[data-of="${id}:${k}"]`);return e?e.value:""};
-  const offArgs=(id,act)=>{const x=O(id);return{p_id:id,p_game:x.game_id,p_label:of(id,"label"),p_frz:nv(of(id,"frz")),p_ds:nv(of(id,"direct_saldo")),p_db:nv(of(id,"direct_banco")),p_du:nv(of(id,"direct_usdt")),p_active:act}};
-  all("[data-osave]",b=>b.onclick=async()=>{const id=+b.dataset.osave;await rpcDo("save_offer",offArgs(id,O(id).active),"gm")});
-  all("[data-otog]",b=>b.onclick=async()=>{const id=+b.dataset.otog;await rpcDo("save_offer",offArgs(id,!O(id).active),"gm")});
-  all("[data-osold]",b=>b.onclick=async()=>{const id=+b.dataset.osold;await rpcDo("set_sold_out",{p_id:id,p_val:!O(id).sold_out},"gm")});
-  all("[data-odel]",b=>b.onclick=async()=>{if(!confirm("¿Borrar esta oferta?"))return;await rpcDo("delete_offer",{p_id:+b.dataset.odel},"gm")});
-  all("[data-oadd]",b=>b.onclick=async()=>{
-    const id=+b.dataset.oadd;
-    await rpcDo("save_offer",{p_id:null,p_game:id,p_label:gv("#nl"+id),p_frz:nv(gv("#nf"+id)),p_ds:nv(gv("#ns"+id)),p_db:nv(gv("#nb"+id)),p_du:nv(gv("#nu"+id)),p_active:true},"gm");
-  });
-  all("[data-rvs]",b=>b.onclick=async()=>{const [id,v]=b.dataset.rvs.split(":");await rpcDo("review_set",{p_id:+id,p_ok:v==="1"},"adm")});
-  all("[data-rvd]",b=>b.onclick=async()=>{if(!confirm("¿Borrar esta opinión?"))return;await rpcDo("review_delete",{p_id:+b.dataset.rvd},"adm")});
-  g("#bk",()=>{
-    const d={fecha:new Date().toISOString(),clientes:S.clients,pedidos:S.orders,recargas:S.deps,transferencias:S.tr,gift_cards:S.cards,ventas_revendedores:S.rsl,opiniones:S.rev};
-    dl("copia-firezone-"+new Date().toISOString().slice(0,10)+".json",JSON.stringify(d,null,2),"application/json");
-    setf("bk","","✅ Descarga iniciada. Guarda el archivo en un lugar seguro.");render();
-  });
-  all("[data-csv]",b=>b.onclick=()=>{
-    const k=b.dataset.csv,day=new Date().toISOString().slice(0,10);
-    if(k==="ped")dl(`pedidos-${day}.csv`,csv([["Número","Fecha","Cliente","Correo","Juego","Oferta","ID","FRZ","Estado","Mensaje"],...S.orders.map(o=>[o.order_no,fmt(o.created_at),cm(o.user_id).name||"",o.email,o.game||"",it(o),o.ff_id,o.frz,o.status,o.msg||""])]),"text/csv");
-    if(k==="rec")dl(`recargas-${day}.csv`,csv([["Número","Fecha","Tipo","Cliente","Correo","Juego","Oferta","ID","FRZ","Método","Precio","Estado","Mensaje"],...S.deps.map(x=>[x.order_no,fmt(x.created_at),x.kind,cm(x.user_id).name||"",x.email,x.game||"",x.kind==="directo"?it(x):"",x.ff_id||"",x.frz,METHODS[mOf(x)].name,priceOf(x),x.status,x.msg||""])]),"text/csv");
-    if(k==="cli")dl(`clientes-${day}.csv`,csv([["Nombre","Correo","Teléfono","Saldo FRZ","Pedidos","Verificado","Rol"],...S.clients.map(c=>[c.name,c.email,c.phone||"",c.balance,c.orders_count,c.verified?"sí":"no",c.admin?"admin":c.helper?"ayudante":c.reseller?"revendedor":"cliente"])]),"text/csv");
-  });
-  all("[data-pro]",b=>b.onclick=async()=>{
-    const [k,id]=b.dataset.pro.split(":");
-    b.disabled=true;
-    const {error}=await SB.rpc("set_processing",{p_kind:k,p_id:+id});
-    setf("adm",error?clean(error.message):"");await load();
-  });
-  all("[data-ver]",b=>b.onclick=async()=>{
-    const {error}=await SB.rpc("set_verified",{p_user:b.dataset.ver,p_ok:b.dataset.vb==="1"});
-    setf("ban",error?clean(error.message):"");await load();
-  });
-  all("[data-rst]",b=>b.onclick=async()=>{
-    if(!confirm("¿Restablecer la contraseña de este cliente? Se genera una temporal."))return;
-    const {data,error}=await SB.rpc("admin_reset_password",{p_user:b.dataset.rst});
-    if(error)setf("ban",clean(error.message));else{S.tmp={id:b.dataset.rst,pw:data};setf("ban")}
-    await load();
-  });
-  g("#gcreate",async()=>{
-    const am=parseFloat(gv("#gam")),q=Math.floor(+gv("#gqty")||1),nt=gv("#gnote").trim();
-    S.f.gam=gv("#gam");S.f.gqty=String(q);S.f.gnote=nt;
-    if(!(am>0)){setf("gnew","Escribe el valor en FRZ.");return render()}
-    if(q<1||q>50){setf("gnew","La cantidad va de 1 a 50.");return render()}
-    const {data,error}=await SB.rpc("create_gifts",{p_frz:am,p_qty:q,p_note:nt});
-    if(error){setf("gnew",clean(error.message));return render()}
-    S.newCodes=data||[];S.f.gam="";S.f.gnote="";setf("gnew","",`Creaste ${S.newCodes.length} gift card(s) de ${N(am)} FRZ.`);
-    await load();
-  });
-  all("[data-void]",b=>b.onclick=async()=>{
-    if(!confirm("¿Anular esta gift card? Ya no se podrá canjear."))return;
-    const {error}=await SB.rpc("void_gift",{p_id:+b.dataset.void});
-    setf("adm",error?clean(error.message):"");await load();
-  });
-  all("[data-pf]",b=>b.onclick=async()=>{
-    const id=b.dataset.pf,{data,error}=await SB.from("deposits").select("proof").eq("id",id).single();
-    if(error||!data){setf("adm","No se pudo cargar la imagen.")}else{S.proofs[id]=data.proof;setf("adm")}
-    render();
-  });
-  all("[data-da]",b=>b.onclick=async()=>{
-    b.disabled=true;
-    const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.da,p_accept:true,p_msg:""});
-    setf("adm",error?clean(error.message):"");await load();
-  });
-  all("[data-dr2]",b=>b.onclick=async()=>{
-    const m=document.querySelector(`[data-dm2="${b.dataset.dr2}"]`).value.trim();
-    b.disabled=true;
-    const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.dr2,p_accept:false,p_msg:m});
-    setf("adm",error?clean(error.message):"");await load();
-  });
-  all("[data-ban]",b=>b.onclick=async()=>{
-    const ban=b.dataset.b==="1";
-    if(ban&&!confirm("¿Banear a este cliente?"))return;
-    const {error}=await SB.rpc("set_ban",{p_user:b.dataset.ban,p_ban:ban});
-    setf("ban",error?clean(error.message):"");await load();
-  });
-  g("#nsend",async()=>{
-    const t=gv("#nmsg").trim();
-    if(!t){setf("note","Escribe un mensaje.");return render()}
-    const {error}=await SB.rpc("send_notification",{p_user:$("#nsend").dataset.u,p_text:t});
-    if(error)setf("note",clean(error.message));else setf("note","","Mensaje enviado.");
-    render();
-  });
-  g("#send",async()=>{
-    const em=gv("#aem").trim(),am=parseFloat(gv("#aam"));
-    if(!em||!(am>0)){setf("send","Completa correo y cantidad.");return render()}
-    const {error}=await SB.rpc("send_frz",{p_email:em,p_amount:am});
-    if(error)setf("send",clean(error.message));else setf("send","",`Enviaste ${N(am)} FRZ a ${em}.`);
-    await load();
-  });
-  g("#rmv",async()=>{
-    const em=gv("#rem").trim(),am=parseFloat(gv("#ram"));
-    if(!em||!(am>0)){setf("rmv","Completa correo y cantidad.");return render()}
-    const {error}=await SB.rpc("remove_frz",{p_email:em,p_amount:am});
-    if(error)setf("rmv",clean(error.message));else setf("rmv","",`Quitaste ${N(am)} FRZ a ${em}.`);
-    await load();
-  });
-  all("[data-a]",b=>b.onclick=async()=>{await SB.rpc("resolve_order",{p_id:+b.dataset.a,p_accept:true,p_msg:""});load()});
-  all("[data-r]",b=>b.onclick=async()=>{
-    const m=document.querySelector(`[data-m="${b.dataset.r}"]`).value.trim();
-    await SB.rpc("resolve_order",{p_id:+b.dataset.r,p_accept:false,p_msg:m});load();
-  });
-}
-init();
-</script></body></html>
+  const offArgs=(id,act)=>{const x=O(id);return{p_id:id,p_game:x.game_id,p_label:of(id,"label"),p_frz:nv(of(id,"frz")),p_ds:nv(of(id,"direct_saldo")),p_db:nv(of(id,
