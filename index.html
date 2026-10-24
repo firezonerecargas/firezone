@@ -239,6 +239,7 @@ function detectNew(list){
   }
   S.seen=new Set(mine.map(x=>x.id));
 }
+  }
 function myNotes(){return S.notes.filter(x=>x.user_id===S.sess.user.id)}
 function unreadN(){return S.sess?myNotes().filter(x=>!x.read).length:0}
 function buildNav(){
@@ -871,4 +872,104 @@ function bind(){
   all("[data-gtog]",b=>b.onclick=async()=>{const id=+b.dataset.gtog,x=G(id);await rpcDo("save_game",{p_id:id,p_name:x.name,p_icon:x.icon,p_idlabel:x.id_label,p_active:!x.active},"gm")});
   all("[data-gdel]",b=>b.onclick=async()=>{if(!confirm("¿Borrar este juego y todas sus ofertas?"))return;await rpcDo("delete_game",{p_id:+b.dataset.gdel},"gm")});
   const of=(id,k)=>{const e=document.querySelector(`[data-of="${id}:${k}"]`);return e?e.value:""};
-  const offArgs=(id,act)=>{const x=O(id);return{p_id:id,p_game:x.game_id,p_label:of(id,"label"),p_frz:nv(of(id,"frz")),p_ds:nv(of(id,"direct_saldo")),p_db:nv(of(id,
+  const offArgs=(id,act)=>{const x=O(id);return{p_id:id,p_game:x.game_id,p_label:of(id,"label"),p_frz:nv(of(id,"frz")),p_ds:nv(of(id,"direct_saldo")),p_db:nv(of(id,"direct_banco")),p_du:nv(of(id,"direct_usdt")),p_active:act}};
+  all("[data-osave]",b=>b.onclick=async()=>{const id=+b.dataset.osave;await rpcDo("save_offer",offArgs(id,O(id).active),"gm")});
+  all("[data-otog]",b=>b.onclick=async()=>{const id=+b.dataset.otog;await rpcDo("save_offer",offArgs(id,!O(id).active),"gm")});
+  all("[data-osold]",b=>b.onclick=async()=>{const id=+b.dataset.osold;await rpcDo("set_sold_out",{p_id:id,p_val:!O(id).sold_out},"gm")});
+  all("[data-odel]",b=>b.onclick=async()=>{if(!confirm("¿Borrar esta oferta?"))return;await rpcDo("delete_offer",{p_id:+b.dataset.odel},"gm")});
+  all("[data-oadd]",b=>b.onclick=async()=>{
+    const id=+b.dataset.oadd;
+    await rpcDo("save_offer",{p_id:null,p_game:id,p_label:gv("#nl"+id),p_frz:nv(gv("#nf"+id)),p_ds:nv(gv("#ns"+id)),p_db:nv(gv("#nb"+id)),p_du:nv(gv("#nu"+id)),p_active:true},"gm");
+  });
+  all("[data-rvs]",b=>b.onclick=async()=>{const [id,v]=b.dataset.rvs.split(":");await rpcDo("review_set",{p_id:+id,p_ok:v==="1"},"adm")});
+  all("[data-rvd]",b=>b.onclick=async()=>{if(!confirm("¿Borrar esta opinión?"))return;await rpcDo("review_delete",{p_id:+b.dataset.rvd},"adm")});
+  g("#bk",()=>{
+    const d={fecha:new Date().toISOString(),clientes:S.clients,pedidos:S.orders,recargas:S.deps,transferencias:S.tr,gift_cards:S.cards,ventas_revendedores:S.rsl,opiniones:S.rev};
+    dl("copia-firezone-"+new Date().toISOString().slice(0,10)+".json",JSON.stringify(d,null,2),"application/json");
+    setf("bk","","✅ Descarga iniciada. Guarda el archivo en un lugar seguro.");render();
+  });
+  all("[data-csv]",b=>b.onclick=()=>{
+    const k=b.dataset.csv,day=new Date().toISOString().slice(0,10);
+    if(k==="ped")dl(`pedidos-${day}.csv`,csv([["Número","Fecha","Cliente","Correo","Juego","Oferta","ID","FRZ","Estado","Mensaje"],...S.orders.map(o=>[o.order_no,fmt(o.created_at),cm(o.user_id).name||"",o.email,o.game||"",it(o),o.ff_id,o.frz,o.status,o.msg||""])]),"text/csv");
+    if(k==="rec")dl(`recargas-${day}.csv`,csv([["Número","Fecha","Tipo","Cliente","Correo","Juego","Oferta","ID","FRZ","Método","Precio","Estado","Mensaje"],...S.deps.map(x=>[x.order_no,fmt(x.created_at),x.kind,cm(x.user_id).name||"",x.email,x.game||"",x.kind==="directo"?it(x):"",x.ff_id||"",x.frz,METHODS[mOf(x)].name,priceOf(x),x.status,x.msg||""])]),"text/csv");
+    if(k==="cli")dl(`clientes-${day}.csv`,csv([["Nombre","Correo","Teléfono","Saldo FRZ","Pedidos","Verificado","Rol"],...S.clients.map(c=>[c.name,c.email,c.phone||"",c.balance,c.orders_count,c.verified?"sí":"no",c.admin?"admin":c.helper?"ayudante":c.reseller?"revendedor":"cliente"])]),"text/csv");
+  });
+  all("[data-pro]",b=>b.onclick=async()=>{
+    const [k,id]=b.dataset.pro.split(":");
+    const {error}=await SB.rpc("set_processing",{p_kind:k,p_id:+id});
+    setf("adm",error?clean(error.message):"");await load();
+  });
+  all("[data-ver]",b=>b.onclick=async()=>{
+    const {error}=await SB.rpc("set_verified",{p_user:b.dataset.ver,p_ok:b.dataset.vb==="1"});
+    setf("ban",error?clean(error.message):"");await load();
+  });
+  all("[data-rst]",b=>b.onclick=async()=>{
+    if(!confirm("¿Restablecer la contraseña de este cliente? Se genera una temporal."))return;
+    const {data,error}=await SB.rpc("admin_reset_password",{p_user:b.dataset.rst});
+    if(error)setf("ban",clean(error.message));else{S.tmp={id:b.dataset.rst,pw:data};setf("ban")}
+    await load();
+  });
+  g("#gcreate",async()=>{
+    const am=parseFloat(gv("#gam")),q=Math.floor(+gv("#gqty")||1),nt=gv("#gnote").trim();
+    S.f.gam=gv("#gam");S.f.gqty=String(q);S.f.gnote=nt;
+    if(!(am>0)){setf("gnew","Escribe el valor en FRZ.");return render()}
+    if(q<1||q>50){setf("gnew","La cantidad va de 1 a 50.");return render()}
+    const {data,error}=await SB.rpc("create_gifts",{p_frz:am,p_qty:q,p_note:nt});
+    if(error){setf("gnew",clean(error.message));return render()}
+    S.newCodes=data||[];S.f.gam="";S.f.gnote="";setf("gnew","",`Creaste ${S.newCodes.length} gift card(s) de ${N(am)} FRZ.`);
+    await load();
+  });
+  all("[data-void]",b=>b.onclick=async()=>{
+    if(!confirm("¿Anular esta gift card? Ya no se podrá canjear."))return;
+    const {error}=await SB.rpc("void_gift",{p_id:+b.dataset.void});
+    setf("adm",error?clean(error.message):"");await load();
+  });
+  all("[data-pf]",b=>b.onclick=async()=>{
+    const id=b.dataset.pf,{data,error}=await SB.from("deposits").select("proof").eq("id",id).single();
+    if(error||!data){setf("adm","No se pudo cargar la imagen.")}else{S.proofs[id]=data.proof;setf("adm")}
+    render();
+  });
+  all("[data-da]",b=>b.onclick=async()=>{
+    const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.da,p_accept:true,p_msg:""});
+    setf("adm",error?clean(error.message):"");await load();
+  });
+  all("[data-dr2]",b=>b.onclick=async()=>{
+    const m=document.querySelector(`[data-dm2="${b.dataset.dr2}"]`).value.trim();
+    const {error}=await SB.rpc("resolve_deposit",{p_id:+b.dataset.dr2,p_accept:false,p_msg:m});
+    setf("adm",error?clean(error.message):"");await load();
+  });
+  all("[data-ban]",b=>b.onclick=async()=>{
+    const ban=b.dataset.b==="1";
+    if(ban&&!confirm("¿Banear a este cliente?"))return;
+    const {error}=await SB.rpc("set_ban",{p_user:b.dataset.ban,p_ban:ban});
+    setf("ban",error?clean(error.message):"");await load();
+  });
+  g("#nsend",async()=>{
+    const t=gv("#nmsg").trim();
+    if(!t){setf("note","Escribe un mensaje.");return render()}
+    const {error}=await SB.rpc("send_notification",{p_user:$("#nsend").dataset.u,p_text:t});
+    if(error)setf("note",clean(error.message));else setf("note","","Mensaje enviado.");
+    render();
+  });
+  g("#send",async()=>{
+    const em=gv("#aem").trim(),am=parseFloat(gv("#aam"));
+    if(!em||!(am>0)){setf("send","Completa correo y cantidad.");return render()}
+    const {error}=await SB.rpc("send_frz",{p_email:em,p_amount:am});
+    if(error)setf("send",clean(error.message));else setf("send","",`Enviaste ${N(am)} FRZ a ${em}.`);
+    await load();
+  });
+  g("#rmv",async()=>{
+    const em=gv("#rem").trim(),am=parseFloat(gv("#ram"));
+    if(!em||!(am>0)){setf("rmv","Completa correo y cantidad.");return render()}
+    const {error}=await SB.rpc("remove_frz",{p_email:em,p_amount:am});
+    if(error)setf("rmv",clean(error.message));else setf("rmv","",`Quitaste ${N(am)} FRZ a ${em}.`);
+    await load();
+  });
+  all("[data-a]",b=>b.onclick=async()=>{await SB.rpc("resolve_order",{p_id:+b.dataset.a,p_accept:true,p_msg:""});load()});
+  all("[data-r]",b=>b.onclick=async()=>{
+    const m=document.querySelector(`[data-m="${b.dataset.r}"]`).value.trim();
+    await SB.rpc("resolve_order",{p_id:+b.dataset.r,p_accept:false,p_msg:m});load();
+  });
+}
+init();
+</script></body></html>
